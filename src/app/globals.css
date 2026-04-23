@@ -75,21 +75,11 @@ body {
    ═══════════════════════════════════════════════════════════ */
 
 ::-webkit-scrollbar {
-  width: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  border-radius: 2px;
+  display: none;
 }
 
 html {
-  scrollbar-width: thin;
-  scrollbar-color: var(--accent) transparent;
+  scrollbar-width: none;
 }
 
 /* ═══════════════════════════════════════════════════════════

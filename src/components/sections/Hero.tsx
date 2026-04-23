@@ -44,9 +44,26 @@ export default function Hero() {
 
     const ctx = gsap.context(() => {
       // ═══════════════════════════════════════════════
+      // ENTRY: Simple opacity fade — NO transform
+      // (transforms are purely owned by ScrollTrigger)
+      // ═══════════════════════════════════════════════
+      gsap.to(nameContainer, {
+        opacity: 0.6, // match ScrollTrigger's initial opacity
+        duration: 0.8,
+        delay: 0.15,
+        ease: "power2.out",
+      });
+
+      gsap.to(scrollIndicatorRef.current, {
+        opacity: 1,
+        duration: 0.6,
+        delay: 0.5,
+        ease: "power2.out",
+      });
+
+      // ═══════════════════════════════════════════════
       // MAIN EFFECT: Perspective Scroll Transform
       // ═══════════════════════════════════════════════
-      // Pin the hero content for the duration of the scroll
       const perspectiveTl = gsap.timeline({
         scrollTrigger: {
           trigger: section,
@@ -54,11 +71,12 @@ export default function Hero() {
           end: "bottom top",
           scrub: 0.8,
           pin: pinContainerRef.current,
-          pinSpacing: false,
+          pinSpacing: true, // push About section down properly
         },
       });
 
       // Name: flat/distant → erupts toward viewer
+      // Completes by 50% so role/manifesto have breathing room
       perspectiveTl.fromTo(
         nameContainer,
         {
@@ -69,60 +87,36 @@ export default function Hero() {
         },
         {
           rotateX: 0,
-          scale: 1.2,
+          scale: 1,
           letterSpacing: "-0.02em",
           opacity: 1,
           ease: "none",
+          duration: 0.5, // completes at 50% of scroll
         },
         0
       );
 
-      // Role line fades in at ~70% scroll progress
+      // Role line fades in at 45% — name is nearly full size
       perspectiveTl.fromTo(
         roleRef.current,
-        { opacity: 0, y: 25 },
-        { opacity: 1, y: 0, duration: 0.15, ease: "power2.out" },
-        0.65
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.1, ease: "power2.out" },
+        0.45
       );
 
-      // Manifesto fades in slightly after role
+      // Manifesto fades in at 52%
       perspectiveTl.fromTo(
         manifestoRef.current,
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.15, ease: "power2.out" },
-        0.75
+        { opacity: 0, y: 15 },
+        { opacity: 1, y: 0, duration: 0.1, ease: "power2.out" },
+        0.52
       );
 
-      // Scroll indicator fades out as user scrolls
+      // Scroll indicator fades out early
       perspectiveTl.to(
         scrollIndicatorRef.current,
-        { opacity: 0, duration: 0.2, ease: "none" },
-        0.1
-      );
-
-      // ═══════════════════════════════════════════════
-      // ENTRY ANIMATION (after loader)
-      // ═══════════════════════════════════════════════
-      const entryTl = gsap.timeline({ delay: 0.2 });
-
-      // Name fades in with a subtle lift
-      entryTl.fromTo(
-        nameContainer,
-        { opacity: 0, y: 30 },
-        {
-          opacity: 0.6, // starts at the scrub initial opacity
-          y: 0,
-          duration: 1,
-          ease: "power2.out",
-        }
-      );
-
-      // Scroll indicator pulses in
-      entryTl.fromTo(
-        scrollIndicatorRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.6, ease: "power2.out" },
-        "-=0.4"
+        { opacity: 0, duration: 0.15, ease: "none" },
+        0.05
       );
     }, section);
 
@@ -145,7 +139,7 @@ export default function Hero() {
         const dx = mx - cx;
         const dy = my - cy;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const maxDist = 200; // radius of effect
+        const maxDist = 200;
 
         if (dist < maxDist) {
           const strength = (1 - dist / maxDist) * 0.35;
@@ -160,7 +154,6 @@ export default function Hero() {
       rafRef.current = requestAnimationFrame(animateChars);
     };
 
-    // Only enable magnetic on desktop
     const isDesktop = window.matchMedia("(pointer: fine)").matches;
     if (isDesktop) {
       window.addEventListener("mousemove", handleMouseMove);
@@ -174,7 +167,6 @@ export default function Hero() {
     };
   }, [loaderComplete]);
 
-  // Reset chars ref on each render
   charsRef.current = [];
 
   return (
@@ -204,7 +196,7 @@ export default function Hero() {
             transformStyle: "preserve-3d",
             willChange: "transform, opacity, letter-spacing",
             textAlign: "center",
-            /* Initial state matches GSAP fromTo 'from' — prevents flash */
+            /* Initial state — matches GSAP fromTo "from" exactly */
             transform: "rotateX(60deg) scale(0.4)",
             letterSpacing: "0.5em",
             opacity: 0,

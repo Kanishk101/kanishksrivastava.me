@@ -34,7 +34,6 @@ const SOCIAL_LINKS = [
 export default function Contact() {
   const sectionRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const badgeRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLAnchorElement>(null);
   const socialsRef = useRef<HTMLDivElement>(null);
@@ -48,18 +47,24 @@ export default function Contact() {
       // CHARACTER-BY-CHARACTER HEADING REVEAL
       // ═══════════════════════════════════════════════
       const heading = headingRef.current!;
-      const text = heading.textContent || "";
-      heading.innerHTML = text
-        .split("")
-        .map(
-          (char) =>
-            `<span class="contact-char" style="display:inline-block;opacity:0;transform:translateY(10px);">${
-              char === " " ? "&nbsp;" : char
-            }</span>`
-        )
-        .join("");
 
-      const chars = heading.querySelectorAll(".contact-char");
+      // Process each line separately (split by <br>)
+      const lines = heading.querySelectorAll(".heading-line");
+      const allChars: Element[] = [];
+
+      lines.forEach((line) => {
+        const text = line.textContent || "";
+        line.innerHTML = text
+          .split("")
+          .map(
+            (char) =>
+              `<span class="contact-char" style="display:inline-block;opacity:0;transform:translateY(10px);">${
+                char === " " ? "&nbsp;" : char
+              }</span>`
+          )
+          .join("");
+        line.querySelectorAll(".contact-char").forEach((c) => allChars.push(c));
+      });
 
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -69,17 +74,9 @@ export default function Contact() {
         },
       });
 
-      // Badge
-      tl.fromTo(
-        badgeRef.current,
-        { opacity: 0, y: 10 },
-        { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
-        0
-      );
-
       // Characters
       tl.to(
-        chars,
+        allChars,
         {
           opacity: 1,
           y: 0,
@@ -87,7 +84,7 @@ export default function Contact() {
           duration: 0.35,
           ease: "power2.out",
         },
-        0.2
+        0
       );
 
       // Content fades in after heading
@@ -169,45 +166,9 @@ export default function Contact() {
       id="contact"
       data-section="contact"
       className="section section-dark relative flex flex-col items-center justify-center"
-      style={{ minHeight: "100dvh", padding: "80px 24px" }}
+      style={{ minHeight: "110dvh", padding: "120px 24px 80px" }}
     >
-      {/* Availability Badge */}
-      <div
-        ref={badgeRef}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          border: "1px solid var(--bg-dark-subtle)",
-          borderRadius: "100px",
-          padding: "6px 16px",
-          marginBottom: "48px",
-          opacity: 0,
-        }}
-      >
-        <span
-          className="availability-dot"
-          style={{
-            width: "6px",
-            height: "6px",
-            borderRadius: "50%",
-            backgroundColor: "#4ade80",
-          }}
-        />
-        <span
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontWeight: 400,
-            fontSize: "11px",
-            letterSpacing: "0.2em",
-            color: "var(--text-muted)",
-          }}
-        >
-          Available for opportunities
-        </span>
-      </div>
-
-      {/* Main Heading — char-by-char reveal */}
+      {/* Main Heading — char-by-char reveal, explicit line break */}
       <h2
         ref={headingRef}
         style={{
@@ -218,11 +179,10 @@ export default function Contact() {
           textAlign: "center",
           lineHeight: 1.1,
           maxWidth: "900px",
-          overflowWrap: "normal",
-          wordBreak: "keep-all",
         }}
       >
-        Let&apos;s build something remarkable.
+        <span className="heading-line" style={{ display: "block" }}>Let&apos;s build something</span>
+        <span className="heading-line" style={{ display: "block" }}>remarkable.</span>
       </h2>
 
       {/* Content below heading */}
@@ -328,7 +288,6 @@ export default function Contact() {
         className="absolute bottom-0 left-0 right-0 flex flex-col sm:flex-row items-center justify-between"
         style={{
           padding: "24px 48px",
-          borderTop: "1px solid var(--bg-dark-subtle)",
         }}
       >
         <span
@@ -352,24 +311,6 @@ export default function Contact() {
           Designed & Built with intention
         </span>
       </div>
-
-      {/* Availability dot pulse animation */}
-      <style jsx>{`
-        .availability-dot {
-          animation: dotPulse 2s infinite;
-        }
-        @keyframes dotPulse {
-          0%,
-          100% {
-            opacity: 1;
-            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4);
-          }
-          50% {
-            opacity: 0.7;
-            box-shadow: 0 0 0 4px rgba(74, 222, 128, 0);
-          }
-        }
-      `}</style>
     </section>
   );
 }
