@@ -124,6 +124,7 @@ export default function Loader() {
       className="fixed inset-0 z-[9998] pointer-events-auto"
       style={{
         display: visible ? "block" : "none",
+        backgroundColor: "rgb(12, 12, 11)",
       }}
     >
       {/* Top Curtain Half */}
@@ -153,63 +154,81 @@ export default function Loader() {
         className="absolute inset-0 flex flex-col items-center justify-center"
         style={{ zIndex: 3 }}
       >
-        {/* Monogram */}
         <div
-          ref={monogramRef}
           style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 300,
-            fontSize: "80px",
-            color: "var(--text-light)",
-            letterSpacing: "0.3em",
-            lineHeight: 1,
-            opacity: 0,
+            width: "min(320px, calc(100vw - 56px))",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            transform: "translate3d(0, -2.5vh, 0)",
           }}
         >
-          KS
-        </div>
-
-        {/* Progress Bar */}
-        <div
-          ref={progressBarRef}
-          style={{
-            width: "200px",
-            height: "1px",
-            backgroundColor: "var(--bg-dark-subtle)",
-            marginTop: "32px",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
+          {/* Monogram */}
           <div
-            ref={progressFillRef}
+            ref={monogramRef}
             style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              backgroundColor: "var(--accent)",
-              transformOrigin: "left center",
-              transform: "scaleX(0)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.24em",
+              fontFamily: "var(--font-display)",
+              fontWeight: 300,
+              fontSize: "clamp(72px, 8vw, 92px)",
+              color: "var(--text-light)",
+              lineHeight: 0.95,
+              opacity: 0,
+              textShadow: "0 0 18px rgba(249, 247, 244, 0.08)",
             }}
-          />
-        </div>
+          >
+            <span>K</span>
+            <span>S</span>
+          </div>
 
-        {/* Percentage Counter */}
-        <span
-          ref={counterRef}
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontWeight: 400,
-            fontSize: "11px",
-            letterSpacing: "0.3em",
-            color: "var(--text-muted)",
-            marginTop: "16px",
-          }}
-        >
-          0
-        </span>
+          {/* Progress Bar */}
+          <div
+            ref={progressBarRef}
+            style={{
+              width: "100%",
+              height: "1px",
+              backgroundColor: "rgba(249, 247, 244, 0.14)",
+              marginTop: "40px",
+              position: "relative",
+              overflow: "hidden",
+              boxShadow: "0 0 24px rgba(196, 185, 174, 0.12)",
+            }}
+          >
+            <div
+              ref={progressFillRef}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                backgroundColor: "var(--accent)",
+                transformOrigin: "left center",
+                transform: "scaleX(0)",
+                boxShadow: "0 0 24px rgba(196, 185, 174, 0.32)",
+              }}
+            />
+          </div>
+
+          {/* Percentage Counter */}
+          <span
+            ref={counterRef}
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontWeight: 400,
+              fontSize: "11px",
+              letterSpacing: "0.34em",
+              color: "rgba(249, 247, 244, 0.56)",
+              marginTop: "18px",
+              transform: "translateX(0.17em)",
+            }}
+          >
+            0
+          </span>
+        </div>
       </div>
 
       {/* Grain overlay for loader */}

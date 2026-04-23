@@ -10,50 +10,105 @@ const QUOTE_WORDS = QUOTE_TEXT.split(" ");
 
 export default function Quote() {
   const sectionRef = useRef<HTMLElement>(null);
-  const quoteRef = useRef<HTMLQuoteElement>(null);
+  const pinRef = useRef<HTMLDivElement>(null);
+  const quoteGroupRef = useRef<HTMLDivElement>(null);
   const attrRef = useRef<HTMLParagraphElement>(null);
   const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const { loaderComplete } = useLoader();
 
   useEffect(() => {
-    if (!sectionRef.current || !quoteRef.current || !loaderComplete) return;
+    if (!sectionRef.current || !pinRef.current || !quoteGroupRef.current || !loaderComplete) {
+      return;
+    }
 
+    const mm = gsap.matchMedia();
     const ctx = gsap.context(() => {
-      const wordEls = wordRefs.current.filter(Boolean);
+      const words = wordRefs.current.filter(Boolean);
 
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 55%",
-          toggleActions: "play none none reverse",
-        },
+      mm.add("(min-width: 1024px)", () => {
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top top",
+            end: "+=150%",
+            scrub: 0.85,
+            pin: pinRef.current,
+            anticipatePin: 1,
+          },
+        });
+
+        tl.fromTo(
+          quoteGroupRef.current,
+          { opacity: 0, y: 60, scale: 0.96 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.18 },
+          0.04
+        )
+          .to(
+            words,
+            {
+              opacity: 1,
+              y: 0,
+              stagger: 0.05,
+              duration: 0.18,
+            },
+            0.08
+          )
+          .fromTo(
+            attrRef.current,
+            { opacity: 0, y: 16 },
+            { opacity: 1, y: 0, duration: 0.12 },
+            0.22
+          )
+          .to({}, { duration: 0.28 }, 0.34)
+          .to(
+            quoteGroupRef.current,
+            { y: -70, opacity: 0.32, duration: 0.18 },
+            0.78
+          )
+          .to(
+            attrRef.current,
+            { y: -30, opacity: 0.18, duration: 0.12 },
+            0.82
+          );
       });
 
-      // Each word reveals individually
-      tl.to(wordEls, {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        stagger: 0.06,
-        duration: 0.5,
-        ease: "power3.out",
-      });
+      mm.add("(max-width: 1023px)", () => {
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 60%",
+          },
+        });
 
-      // Attribution fades in while last few words are still animating (not after)
-      tl.fromTo(
-        attrRef.current,
-        { opacity: 0, y: 8 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.5,
-          ease: "power2.out",
-        },
-        `-=${(wordEls.length * 0.06 * 0.4).toFixed(2)}` // starts 40% before last word finishes
-      );
+        tl.fromTo(
+          quoteGroupRef.current,
+          { opacity: 0, y: 36 },
+          { opacity: 1, y: 0, duration: 0.5 },
+          0
+        )
+          .to(
+            words,
+            {
+              opacity: 1,
+              y: 0,
+              stagger: 0.04,
+              duration: 0.32,
+            },
+            0.04
+          )
+          .fromTo(
+            attrRef.current,
+            { opacity: 0, y: 10 },
+            { opacity: 1, y: 0, duration: 0.32 },
+            0.22
+          );
+      });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      mm.revert();
+      ctx.revert();
+    };
   }, [loaderComplete]);
 
   return (
@@ -61,72 +116,73 @@ export default function Quote() {
       ref={sectionRef}
       id="quote"
       data-section="quote"
-      className="section section-dark relative flex items-center justify-center"
-      style={{
-        height: "100vh",
-        zIndex: 2,
-      }}
+      className="section section-dark"
+      style={{ minHeight: "230vh" }}
     >
       <div
-        className="text-center"
+        ref={pinRef}
         style={{
-          maxWidth: "65%",
-          margin: "0 auto",
-          padding: "0 24px",
-          position: "relative",
-          zIndex: 2,
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "0 32px",
         }}
       >
-        {/* The Quote */}
-        <blockquote
-          ref={quoteRef}
+        <div
+          ref={quoteGroupRef}
           style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 300,
-            fontStyle: "italic",
-            fontSize: "clamp(32px, 5vw, 72px)",
-            lineHeight: 1.4,
-            color: "var(--text-light)",
-            margin: 0,
-            padding: 0,
-            border: "none",
-          }}
-        >
-          {QUOTE_WORDS.map((word, index) => (
-            <span
-              key={`${word}-${index}`}
-              ref={(el) => {
-                wordRefs.current[index] = el;
-              }}
-              className="quote-word"
-              style={{
-                display: "inline-block",
-                opacity: 0,
-                transform: "translateY(20px) scale(0.95)",
-              }}
-            >
-              {word}
-              {index < QUOTE_WORDS.length - 1 ? "\u00A0" : ""}
-            </span>
-          ))}
-        </blockquote>
-
-        {/* Attribution */}
-        <p
-          ref={attrRef}
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontWeight: 400,
-            fontSize: "11px",
-            letterSpacing: "0.4em",
-            textTransform: "uppercase",
-            color: "var(--accent)",
-            marginTop: "32px",
+            maxWidth: "1200px",
+            width: "100%",
+            textAlign: "center",
             opacity: 0,
           }}
         >
-          {"— Steve Jobs"}
-        </p>
+          <blockquote
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 300,
+              fontStyle: "italic",
+              fontSize: "clamp(34px, 5vw, 74px)",
+              lineHeight: 1.24,
+              color: "var(--text-light)",
+              margin: 0,
+            }}
+          >
+            {QUOTE_WORDS.map((word, index) => (
+              <span
+                key={`${word}-${index}`}
+                ref={(el) => {
+                  wordRefs.current[index] = el;
+                }}
+                style={{
+                  display: "inline-block",
+                  opacity: 0.18,
+                  transform: "translateY(16px)",
+                }}
+              >
+                {word}
+                {index < QUOTE_WORDS.length - 1 ? "\u00A0" : ""}
+              </span>
+            ))}
+          </blockquote>
+
+          <p
+            ref={attrRef}
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontWeight: 400,
+              fontSize: "11px",
+              letterSpacing: "0.4em",
+              textTransform: "uppercase",
+              color: "var(--accent)",
+              marginTop: "28px",
+              opacity: 0,
+            }}
+          >
+            — Steve Jobs
+          </p>
+        </div>
       </div>
     </section>
   );

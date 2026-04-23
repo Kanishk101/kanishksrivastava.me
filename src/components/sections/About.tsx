@@ -1,126 +1,186 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap } from "@/lib/gsap";
+import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { useLoader } from "@/contexts/LoaderContext";
 
 export default function About() {
   const sectionRef = useRef<HTMLElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const textColumnRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLSpanElement>(null);
   const quoteRef = useRef<HTMLParagraphElement>(null);
   const body1Ref = useRef<HTMLParagraphElement>(null);
   const body2Ref = useRef<HTMLParagraphElement>(null);
   const metaRef = useRef<HTMLParagraphElement>(null);
   const portraitRef = useRef<HTMLDivElement>(null);
+  const ambientRef = useRef<HTMLDivElement>(null);
   const { loaderComplete } = useLoader();
 
   useEffect(() => {
     if (!sectionRef.current || !loaderComplete) return;
 
+    const mm = gsap.matchMedia();
     const ctx = gsap.context(() => {
-      // ═══════════════════════════════════════════════
-      // PULL QUOTE: simple fade-up (no DOM mutation)
-      // ═══════════════════════════════════════════════
-      if (quoteRef.current) {
-        gsap.fromTo(
-          quoteRef.current,
-          { opacity: 0, y: 18 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.7,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: sectionRef.current,
-              start: "top 65%",
-              toggleActions: "play none none reverse",
-            },
-          }
-        );
-      }
-
-      // ═══════════════════════════════════════════════
-      // SECTION LABEL: fade up
-      // ═══════════════════════════════════════════════
-      gsap.fromTo(
-        labelRef.current,
-        { opacity: 0, y: 15 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.5,
-          ease: "power2.out",
+      mm.add("(min-width: 1024px)", () => {
+        const timeline = gsap.timeline({
           scrollTrigger: {
             trigger: sectionRef.current,
-            start: "top 70%",
-            toggleActions: "play none none reverse",
+            start: "top top",
+            end: "+=170%",
+            scrub: 0.8,
+            pin: true,
+            anticipatePin: 1,
           },
-        }
-      );
+        });
 
-      // ═══════════════════════════════════════════════
-      // BODY PARAGRAPHS: staggered line-by-line fade up
-      // ═══════════════════════════════════════════════
-      [body1Ref.current, body2Ref.current].forEach((el, idx) => {
-        if (!el) return;
+        timeline
+          .fromTo(
+            ambientRef.current,
+            { opacity: 0.25, scale: 0.92 },
+            { opacity: 0.95, scale: 1.06, duration: 0.3 },
+            0
+          )
+          .fromTo(
+            labelRef.current,
+            { opacity: 0, y: 36 },
+            { opacity: 1, y: 0, duration: 0.16 },
+            0.04
+          )
+          .fromTo(
+            quoteRef.current,
+            { opacity: 0, y: 68 },
+            { opacity: 1, y: 0, duration: 0.24 },
+            0.1
+          )
+          .fromTo(
+            [body1Ref.current, body2Ref.current, metaRef.current],
+            { opacity: 0, y: 54 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.26,
+              stagger: 0.05,
+            },
+            0.16
+          )
+          .fromTo(
+            portraitRef.current,
+            { opacity: 0, y: 88, scale: 0.9, rotate: -3 },
+            { opacity: 1, y: 0, scale: 1, rotate: 0, duration: 0.34 },
+            0.12
+          )
+          .to({}, { duration: 0.34 }, 0.32)
+          .to(textColumnRef.current, { y: -84, duration: 0.18 }, 0.72)
+          .to(
+            portraitRef.current,
+            { y: -96, scale: 1.03, duration: 0.2 },
+            0.72
+          )
+          .to(quoteRef.current, { y: -92, opacity: 0.62, duration: 0.16 }, 0.78)
+          .to(
+            [body1Ref.current, body2Ref.current],
+            {
+              y: -38,
+              opacity: 0.74,
+              stagger: 0.03,
+              duration: 0.16,
+            },
+            0.8
+          )
+          .to(metaRef.current, { y: -24, opacity: 0.54, duration: 0.14 }, 0.82)
+          .to(shellRef.current, { y: -10, duration: 0.14 }, 0.84);
+      });
+
+      mm.add("(max-width: 1023px)", () => {
+        if (quoteRef.current) {
+          gsap.fromTo(
+            quoteRef.current,
+            { opacity: 0, y: 18 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.7,
+              ease: "power3.out",
+              scrollTrigger: {
+                trigger: sectionRef.current,
+                start: "top 65%",
+              },
+            }
+          );
+        }
+
         gsap.fromTo(
-          el,
-          { opacity: 0, y: 20 },
+          labelRef.current,
+          { opacity: 0, y: 15 },
           {
             opacity: 1,
             y: 0,
-            duration: 0.6,
-            delay: idx * 0.12,
+            duration: 0.5,
             ease: "power2.out",
             scrollTrigger: {
               trigger: sectionRef.current,
-              start: "top 60%",
-              toggleActions: "play none none reverse",
+              start: "top 70%",
+            },
+          }
+        );
+
+        [body1Ref.current, body2Ref.current].forEach((el, idx) => {
+          if (!el) return;
+          gsap.fromTo(
+            el,
+            { opacity: 0, y: 20 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.6,
+              delay: idx * 0.12,
+              ease: "power2.out",
+              scrollTrigger: {
+                trigger: sectionRef.current,
+                start: "top 60%",
+              },
+            }
+          );
+        });
+
+        gsap.fromTo(
+          metaRef.current,
+          { opacity: 0, y: 15 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.5,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: sectionRef.current,
+              start: "top 55%",
+            },
+          }
+        );
+
+        gsap.fromTo(
+          portraitRef.current,
+          { opacity: 0, scale: 0.95 },
+          {
+            opacity: 1,
+            scale: 1,
+            duration: 0.8,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: sectionRef.current,
+              start: "top 65%",
             },
           }
         );
       });
-
-      // ═══════════════════════════════════════════════
-      // META INFO: fade up after body
-      // ═══════════════════════════════════════════════
-      gsap.fromTo(
-        metaRef.current,
-        { opacity: 0, y: 15 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.5,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 55%",
-            toggleActions: "play none none reverse",
-          },
-        }
-      );
-
-      // ═══════════════════════════════════════════════
-      // PORTRAIT: fade + scale up
-      // ═══════════════════════════════════════════════
-      gsap.fromTo(
-        portraitRef.current,
-        { opacity: 0, scale: 0.95 },
-        {
-          opacity: 1,
-          scale: 1,
-          duration: 0.8,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 65%",
-            toggleActions: "play none none reverse",
-          },
-        }
-      );
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      mm.revert();
+      ctx.revert();
+      ScrollTrigger.refresh();
+    };
   }, [loaderComplete]);
 
   return (
@@ -129,10 +189,33 @@ export default function About() {
       id="about"
       data-section="about"
       className="section section-light"
-      style={{ minHeight: "100vh", padding: "160px 0 120px" }}
+      style={{
+        minHeight: "100vh",
+        padding: "0",
+        display: "flex",
+        alignItems: "center",
+      }}
     >
-      <div className="section-content">
+      <div
+        ref={ambientRef}
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: "12% 8%",
+          background:
+            "radial-gradient(circle at 18% 24%, rgba(196, 185, 174, 0.22), transparent 0 34%), radial-gradient(circle at 82% 70%, rgba(12, 12, 11, 0.1), transparent 0 30%)",
+          filter: "blur(28px)",
+          opacity: 0.35,
+          pointerEvents: "none",
+        }}
+      />
+      <div
+        ref={shellRef}
+        className="section-content"
+        style={{ paddingTop: "160px", paddingBottom: "140px" }}
+      >
         <div
+          ref={textColumnRef}
           className="flex flex-col lg:flex-row items-center"
           style={{ gap: "clamp(48px, 6vw, 96px)" }}
         >
@@ -162,11 +245,11 @@ export default function About() {
                 fontFamily: "var(--font-display)",
                 fontWeight: 300,
                 fontStyle: "italic",
-                fontSize: "28px",
-                lineHeight: 1.35,
+                fontSize: "clamp(30px, 2.9vw, 42px)",
+                lineHeight: 1.24,
                 color: "var(--text-primary)",
-                marginBottom: "36px",
-                maxWidth: "440px",
+                marginBottom: "32px",
+                maxWidth: "500px",
                 opacity: 0,
               }}
             >
@@ -237,13 +320,16 @@ export default function About() {
                 aspectRatio: "3/4",
                 maxHeight: "520px",
                 maxWidth: "390px",
-                backgroundColor: "var(--grid-line)",
+                background:
+                  "linear-gradient(180deg, rgba(232, 228, 223, 0.9) 0%, rgba(240, 237, 232, 0.96) 100%)",
                 border: "1px solid var(--accent)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 overflow: "hidden",
                 opacity: 0,
+                boxShadow:
+                  "0 36px 90px rgba(12, 12, 11, 0.12), 0 0 0 1px rgba(196, 185, 174, 0.18) inset",
                 transition:
                   "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease",
                 marginLeft: "auto",

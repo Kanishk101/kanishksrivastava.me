@@ -169,7 +169,7 @@ export default function Hero() {
       data-section="hero"
       className="section section-light relative"
       style={{
-        height: "1800vh",
+        height: "1450vh",
       }}
     >
       {/* Pinned content container */}
@@ -182,6 +182,20 @@ export default function Hero() {
           overflow: "hidden",
         }}
       >
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: "18% 12% auto",
+            height: "42vh",
+            background:
+              "radial-gradient(circle at 50% 50%, rgba(196, 185, 174, 0.18), rgba(196, 185, 174, 0) 62%)",
+            filter: "blur(38px)",
+            pointerEvents: "none",
+            opacity: 0.85,
+          }}
+        />
+
         {/* Name — The Visual */}
         <div
           ref={nameContainerRef}
@@ -193,6 +207,7 @@ export default function Hero() {
             transform: "rotateX(60deg) scale(0.4)",
             letterSpacing: "0.5em",
             opacity: 0,
+            textShadow: "0 18px 42px rgba(12, 12, 11, 0.12)",
           }}
         >
           <h1
@@ -222,12 +237,13 @@ export default function Hero() {
             fontFamily: "var(--font-sans)",
             fontWeight: 400,
             fontSize: "11px",
-            letterSpacing: "0.3em",
+            letterSpacing: "0.34em",
             textTransform: "uppercase",
             color: "var(--text-secondary)",
-            marginTop: "32px",
+            marginTop: "36px",
             opacity: 0,
             textAlign: "center",
+            textShadow: "0 8px 18px rgba(12, 12, 11, 0.08)",
           }}
         >
           Full-Stack Engineer · iOS Developer · Creative Technologist

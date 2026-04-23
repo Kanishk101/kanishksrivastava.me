@@ -79,6 +79,8 @@ const PROJECTS: Project[] = [
 
 export default function Work() {
   const sectionRef = useRef<HTMLElement>(null);
+  const pinRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const rowsRef = useRef<(HTMLDivElement | null)[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [hoveredProject, setHoveredProject] = useState<string | null>(null);
@@ -90,6 +92,7 @@ export default function Work() {
   const mouseRef = useRef({ x: 0, y: 0 });
   const imgPosRef = useRef({ x: 0, y: 0 });
   const [previewDirection, setPreviewDirection] = useState<1 | -1>(1);
+  const [interactiveCount, setInteractiveCount] = useState(0);
   const { loaderComplete } = useLoader();
 
   const isPlaceholderHref = (href?: string) => !href || href === "#";
@@ -99,6 +102,8 @@ export default function Work() {
   }, {});
 
   const showHoveredProject = (projectId: string) => {
+    const projectIndex = projectOrder[projectId];
+    if (projectIndex >= interactiveCount) return;
     if (hoveredProject === projectId && displayedProject === projectId) return;
 
     if (displayedProject) {
@@ -146,32 +151,95 @@ export default function Work() {
   // SCROLL ANIMATIONS
   // ═══════════════════════════════════════════════
   useEffect(() => {
-    if (!sectionRef.current || !loaderComplete) return;
+    if (!sectionRef.current || !pinRef.current || !loaderComplete) return;
 
+    const mm = gsap.matchMedia();
     const ctx = gsap.context(() => {
-      rowsRef.current.forEach((row, i) => {
-        if (!row) return;
-        gsap.fromTo(
-          row,
-          { opacity: 0, y: 30 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.6,
-            delay: i * 0.1,
-            ease: "power2.out",
-            scrollTrigger: {
-              trigger: sectionRef.current,
-              start: "top 65%",
-              toggleActions: "play none none reverse",
+      mm.add("(min-width: 1024px)", () => {
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top top",
+            end: "+=160%",
+            scrub: 0.9,
+            pin: pinRef.current,
+            anticipatePin: 1,
+            onUpdate: (self) => {
+              const revealCount = Math.min(
+                PROJECTS.length,
+                Math.max(0, Math.floor(self.progress * PROJECTS.length * 1.22))
+              );
+              setInteractiveCount(revealCount);
             },
-          }
-        );
+          },
+        });
+
+        tl.fromTo(listRef.current, { y: 40 }, { y: -24, duration: 0.92, ease: "none" }, 0.04);
+
+        rowsRef.current.forEach((row, i) => {
+          if (!row) return;
+          tl.fromTo(
+            row,
+            { opacity: 0.08, y: 88, filter: "blur(10px)" },
+            { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.28 },
+            0.08 + i * 0.14
+          );
+        });
+      });
+
+      mm.add("(max-width: 1023px)", () => {
+        setInteractiveCount(0);
+        rowsRef.current.forEach((row, i) => {
+          if (!row) return;
+          gsap.fromTo(
+            row,
+            { opacity: 0, y: 30 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.6,
+              delay: i * 0.1,
+              ease: "power2.out",
+              scrollTrigger: {
+                trigger: row,
+                start: "top 80%",
+                onEnter: () => setInteractiveCount((count) => Math.max(count, i + 1)),
+                onEnterBack: () => setInteractiveCount((count) => Math.max(count, i + 1)),
+              },
+            }
+          );
+        });
       });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      mm.revert();
+      ctx.revert();
+      setInteractiveCount(0);
+    };
   }, [loaderComplete]);
+
+  useEffect(() => {
+    const maxAllowedIndex = Math.max(0, interactiveCount - 1);
+    let hoveredFrame = 0;
+    let displayedFrame = 0;
+
+    if (hoveredProject && projectOrder[hoveredProject] > maxAllowedIndex) {
+      hoveredFrame = window.requestAnimationFrame(() => {
+        setHoveredProject(null);
+      });
+    }
+    if (displayedProject && projectOrder[displayedProject] > maxAllowedIndex) {
+      displayedFrame = window.requestAnimationFrame(() => {
+        setDisplayedProject(null);
+      });
+    }
+
+    return () => {
+      if (hoveredFrame) window.cancelAnimationFrame(hoveredFrame);
+      if (displayedFrame) window.cancelAnimationFrame(displayedFrame);
+    };
+  }, [interactiveCount, hoveredProject, displayedProject, projectOrder]);
 
   // ═══════════════════════════════════════════════
   // BODY SCROLL LOCK when modal is open
@@ -260,9 +328,20 @@ export default function Work() {
         id="work"
         data-section="work"
         className="section section-surface"
-        style={{ minHeight: "100vh", padding: "160px 0 120px" }}
+        style={{ minHeight: "240vh" }}
       >
-        <div className="section-content">
+        <div
+          ref={pinRef}
+          className="section-content"
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            paddingTop: "160px",
+            paddingBottom: "140px",
+          }}
+        >
           {/* Section Label */}
           <span
             style={{
@@ -287,43 +366,54 @@ export default function Work() {
           />
 
           {/* Project List */}
-          <div>
+          <div ref={listRef}>
             {PROJECTS.map((project, i) => {
               const marqueeText = `${project.name} · ${project.type} · ${project.year} · `.repeat(10);
+              const isInteractive = i < interactiveCount || interactiveCount >= PROJECTS.length;
               return (
                 <div
                   key={project.id}
                   ref={(el) => {
                     rowsRef.current[i] = el;
                   }}
-                  style={{ opacity: 0 }}
-                  onMouseEnter={() => showHoveredProject(project.id)}
+                  style={{
+                    opacity: 0,
+                    pointerEvents: isInteractive ? "auto" : "none",
+                  }}
+                  onMouseEnter={() => {
+                    if (isInteractive) showHoveredProject(project.id);
+                  }}
                   onMouseLeave={hideHoveredProject}
                 >
                   {/* Main Row */}
                   <button
                     type="button"
                     className="project-row w-full text-left"
+                    disabled={!isInteractive}
                     style={{
                       display: "grid",
                       gridTemplateColumns: "48px 1fr auto auto",
                       alignItems: "center",
-                      gap: "24px",
-                      height: "80px",
+                      gap: "36px",
+                      minHeight: "118px",
                       borderBottom: hoveredProject === project.id ? "none" : "1px solid var(--grid-line)",
-                      padding: "0 16px",
+                      padding: "18px 24px",
                       position: "relative",
                       transition: "background-color 0.25s ease",
+                      cursor: isInteractive ? "pointer" : "default",
                     }}
-                    onClick={() => setSelectedProject(project)}
+                    onClick={() => {
+                      if (isInteractive) setSelectedProject(project);
+                    }}
                     data-cursor="pointer"
                     onKeyDown={(e) => {
-                      if (e.key === " " || e.key === "Enter") {
+                      if (isInteractive && (e.key === " " || e.key === "Enter")) {
                         e.preventDefault();
                         setSelectedProject(project);
                       }
                     }}
                     onMouseOver={(e) => {
+                      if (!isInteractive) return;
                       e.currentTarget.style.backgroundColor =
                         "rgba(232, 228, 223, 0.6)";
                     }}
@@ -350,7 +440,7 @@ export default function Work() {
                       style={{
                         fontFamily: "var(--font-display)",
                         fontWeight: 700,
-                        fontSize: "clamp(22px, 3vw, 36px)",
+                        fontSize: "clamp(28px, 3.6vw, 46px)",
                         color: "var(--text-primary)",
                       }}
                     >
@@ -405,15 +495,18 @@ export default function Work() {
                   {/* ═══ MARQUEE BAND — slides open on hover ═══ */}
                   <div
                     style={{
-                      height: hoveredProject === project.id ? "44px" : "0px",
+                      height: hoveredProject === project.id ? "52px" : "0px",
                       overflow: "hidden",
                       backgroundColor: "var(--text-primary)",
                       transition: "height 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
                       display: "flex",
                       alignItems: "center",
                       borderBottom: "1px solid var(--grid-line)",
+                      pointerEvents: isInteractive ? "auto" : "none",
                     }}
-                    onClick={() => setSelectedProject(project)}
+                    onClick={() => {
+                      if (isInteractive) setSelectedProject(project);
+                    }}
                   >
                     <div className="marquee-track">
                       <span
@@ -452,7 +545,7 @@ export default function Work() {
                 width: "200px",
                 height: "140px",
                 backgroundColor: "var(--bg-dark-elevated)",
-                transform: "rotate(-3deg)",
+                transform: "rotate(2.6deg)",
                 pointerEvents: "none",
                 zIndex: 60,
                 display: "flex",
@@ -466,7 +559,7 @@ export default function Work() {
                 style={{
                   position: "relative",
                   width: "100%",
-                  height: "24px",
+                  height: "28px",
                   overflow: "hidden",
                 }}
               >
@@ -475,15 +568,17 @@ export default function Work() {
                     key={displayedProject}
                     custom={previewDirection}
                     initial={(direction) => ({
-                      y: direction > 0 ? "110%" : "-110%",
+                      y: direction > 0 ? "145%" : "-145%",
                       opacity: 0,
+                      filter: "blur(7px)",
                     })}
-                    animate={{ y: "0%", opacity: 1 }}
+                    animate={{ y: "0%", opacity: 1, filter: "blur(0px)" }}
                     exit={(direction) => ({
-                      y: direction > 0 ? "-110%" : "110%",
+                      y: direction > 0 ? "-145%" : "145%",
                       opacity: 0,
+                      filter: "blur(7px)",
                     })}
-                    transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+                    transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
                     style={{
                       position: "absolute",
                       inset: 0,
@@ -492,10 +587,11 @@ export default function Work() {
                       justifyContent: "center",
                       fontFamily: "var(--font-sans)",
                       fontSize: "10px",
-                      color: "var(--text-muted)",
+                      color: "rgba(249, 247, 244, 0.76)",
                       letterSpacing: "0.2em",
                       textTransform: "uppercase",
                       willChange: "transform",
+                      textShadow: "0 0 14px rgba(249, 247, 244, 0.08)",
                     }}
                   >
                     {PROJECTS.find((project) => project.id === displayedProject)?.name || ""}

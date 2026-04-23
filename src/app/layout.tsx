@@ -75,8 +75,9 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${cormorant.variable} ${syne.variable} ${outfit.variable}`}
+      suppressHydrationWarning
     >
-      <body>
+      <body suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

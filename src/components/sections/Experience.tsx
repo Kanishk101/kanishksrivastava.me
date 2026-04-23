@@ -36,37 +36,112 @@ const EXPERIENCE = [
 
 export default function Experience() {
   const sectionRef = useRef<HTMLElement>(null);
+  const pinRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLSpanElement>(null);
-  const timelineContainerRef = useRef<HTMLDivElement>(null);
+  const lineRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const entriesRef = useRef<(HTMLDivElement | null)[]>([]);
   const nodesRef = useRef<(HTMLDivElement | null)[]>([]);
   const { loaderComplete } = useLoader();
 
   useEffect(() => {
-    if (!sectionRef.current || !loaderComplete) return;
+    if (!sectionRef.current || !pinRef.current || !loaderComplete) return;
 
+    const mm = gsap.matchMedia();
     const ctx = gsap.context(() => {
-      // Section label
-      gsap.fromTo(
-        labelRef.current,
-        { opacity: 0, y: 15 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.5,
-          ease: "power2.out",
+      mm.add("(min-width: 1024px)", () => {
+        if (!listRef.current) return;
+
+        const tl = gsap.timeline({
           scrollTrigger: {
             trigger: sectionRef.current,
-            start: "top 70%",
-            toggleActions: "play none none reverse",
+            start: "top top",
+            end: "+=230%",
+            scrub: 0.8,
+            pin: pinRef.current,
+            anticipatePin: 1,
           },
-        }
-      );
+        });
 
-      // Timeline line draws itself using clip-path
-      if (timelineContainerRef.current) {
+        tl.fromTo(
+          labelRef.current,
+          { opacity: 0, y: 18 },
+          { opacity: 1, y: 0, duration: 0.08 },
+          0.02
+        ).fromTo(
+          lineRef.current,
+          { scaleY: 0, transformOrigin: "top center" },
+          { scaleY: 1, duration: 0.82, ease: "none" },
+          0.06
+        );
+
+        tl.fromTo(
+          listRef.current,
+          { y: 70 },
+          { y: -310, duration: 0.92, ease: "none" },
+          0.08
+        );
+
+        entriesRef.current.forEach((entry, index) => {
+          if (!entry) return;
+          const start = 0.12 + index * 0.16;
+          const node = nodesRef.current[index];
+
+          tl.fromTo(
+            entry,
+            { opacity: 0.08, y: 70, x: 34, filter: "blur(8px)" },
+            { opacity: 1, y: 0, x: 0, filter: "blur(0px)", duration: 0.18 },
+            start
+          );
+
+          if (node) {
+            tl.fromTo(
+              node,
+              { scale: 0, opacity: 0 },
+              { scale: 1, opacity: 1, duration: 0.12, ease: "back.out(2)" },
+              start + 0.02
+            );
+            tl.to(
+              node,
+              {
+                backgroundColor: "var(--text-primary)",
+                scale: 1.18,
+                duration: 0.1,
+              },
+              start + 0.08
+            );
+            if (index > 0 && nodesRef.current[index - 1]) {
+              tl.to(
+                nodesRef.current[index - 1],
+                {
+                  backgroundColor: "var(--accent)",
+                  scale: 1,
+                  duration: 0.1,
+                },
+                start + 0.08
+              );
+            }
+          }
+        });
+      });
+
+      mm.add("(max-width: 1023px)", () => {
         gsap.fromTo(
-          timelineContainerRef.current.querySelector(".timeline-line"),
+          labelRef.current,
+          { opacity: 0, y: 15 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.5,
+            scrollTrigger: {
+              trigger: sectionRef.current,
+              start: "top 70%",
+            },
+          }
+        );
+
+        gsap.fromTo(
+          lineRef.current,
           { scaleY: 0, transformOrigin: "top center" },
           {
             scaleY: 1,
@@ -79,49 +154,48 @@ export default function Experience() {
             },
           }
         );
-      }
 
-      // Entries slide in from right as timeline passes
-      entriesRef.current.forEach((entry, i) => {
-        if (!entry) return;
+        entriesRef.current.forEach((entry, index) => {
+          if (!entry) return;
 
-        gsap.fromTo(
-          entry,
-          { opacity: 0, x: 25 },
-          {
-            opacity: 1,
-            x: 0,
-            duration: 0.6,
-            ease: "power2.out",
-            scrollTrigger: {
-              trigger: entry,
-              start: "top 80%",
-              toggleActions: "play none none reverse",
-            },
-          }
-        );
-
-        // Node circles scale in
-        if (nodesRef.current[i]) {
           gsap.fromTo(
-            nodesRef.current[i],
-            { scale: 0 },
+            entry,
+            { opacity: 0, x: 24, y: 18 },
             {
-              scale: 1,
-              duration: 0.4,
-              ease: "back.out(2)",
+              opacity: 1,
+              x: 0,
+              y: 0,
+              duration: 0.55,
               scrollTrigger: {
                 trigger: entry,
-                start: "top 80%",
-                toggleActions: "play none none reverse",
+                start: "top 82%",
               },
             }
           );
-        }
+
+          if (nodesRef.current[index]) {
+            gsap.fromTo(
+              nodesRef.current[index],
+              { scale: 0 },
+              {
+                scale: 1,
+                duration: 0.35,
+                ease: "back.out(2)",
+                scrollTrigger: {
+                  trigger: entry,
+                  start: "top 82%",
+                },
+              }
+            );
+          }
+        });
       });
     }, sectionRef);
 
-    return () => ctx.revert();
+    return () => {
+      mm.revert();
+      ctx.revert();
+    };
   }, [loaderComplete]);
 
   return (
@@ -130,10 +204,20 @@ export default function Experience() {
       id="experience"
       data-section="experience"
       className="section section-light"
-      style={{ minHeight: "100vh", padding: "200px 0 280px" }}
+      style={{ minHeight: "280vh" }}
     >
-      <div className="section-content">
-        {/* Section Label */}
+      <div
+        ref={pinRef}
+        className="section-content"
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          paddingTop: "180px",
+          paddingBottom: "180px",
+        }}
+      >
         <span
           ref={labelRef}
           style={{
@@ -151,113 +235,112 @@ export default function Experience() {
           Experience
         </span>
 
-        {/* Timeline Container */}
         <div
-          ref={timelineContainerRef}
-          className="relative"
-          style={{ paddingLeft: "48px" }}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "72px 1fr",
+            gap: "56px",
+            alignItems: "start",
+          }}
         >
-          {/* Timeline Spine — thin vertical line */}
-          <div
-            className="timeline-line absolute"
-            style={{
-              left: "0",
-              top: "0",
-              width: "2px",
-              height: "100%",
-              backgroundColor: "var(--accent)",
-              transformOrigin: "top center",
-              transform: "scaleY(0)",
-            }}
-          />
-
-          {/* Entries */}
-          <div className="flex flex-col" style={{ gap: "160px" }}>
-            {EXPERIENCE.map((item, i) => (
+          <div style={{ position: "relative", minHeight: "820px" }}>
+            <div
+              ref={lineRef}
+              style={{
+                position: "absolute",
+                left: "34px",
+                top: 0,
+                width: "3px",
+                height: "100%",
+                backgroundColor: "var(--accent)",
+                transformOrigin: "top center",
+                transform: "scaleY(0)",
+              }}
+            />
+            {EXPERIENCE.map((_, index) => (
               <div
-                key={i}
+                key={`node-${index}`}
                 ref={(el) => {
-                  entriesRef.current[i] = el;
+                  nodesRef.current[index] = el;
                 }}
-                className="relative"
+                style={{
+                  position: "absolute",
+                  left: "28px",
+                  top: `${index * 212}px`,
+                  width: "14px",
+                  height: "14px",
+                  borderRadius: "999px",
+                  backgroundColor: "var(--accent)",
+                  transform: "scale(0)",
+                }}
+              />
+            ))}
+          </div>
+
+          <div
+            ref={listRef}
+            className="flex flex-col"
+            style={{ gap: "132px", willChange: "transform" }}
+          >
+            {EXPERIENCE.map((item, index) => (
+              <div
+                key={item.role}
+                ref={(el) => {
+                  entriesRef.current[index] = el;
+                }}
                 style={{ opacity: 0 }}
               >
-                {/* Timeline Node — circle on the spine */}
-                <div
-                  ref={(el) => {
-                    nodesRef.current[i] = el;
-                  }}
-                  className="absolute"
+                <span
                   style={{
-                    left: "-52px",
-                    top: "6px",
-                    width: "10px",
-                    height: "10px",
-                    borderRadius: "50%",
-                    backgroundColor: "var(--accent)",
-                    transform: "scale(0)",
+                    fontFamily: "var(--font-sans)",
+                    fontWeight: 400,
+                    fontSize: "11px",
+                    color: "var(--text-muted)",
+                    display: "block",
+                    marginBottom: "10px",
                   }}
-                />
-
-                {/* Content */}
-                <div>
-                  {/* Date */}
-                  <span
+                >
+                  {item.date}
+                </span>
+                <div
+                  className="flex flex-wrap items-baseline"
+                  style={{ gap: "10px", marginBottom: "12px" }}
+                >
+                  <h3
                     style={{
                       fontFamily: "var(--font-sans)",
-                      fontWeight: 400,
-                      fontSize: "11px",
-                      color: "var(--text-muted)",
-                      display: "block",
-                      marginBottom: "6px",
+                      fontWeight: 700,
+                      fontSize: "clamp(26px, 2.4vw, 42px)",
+                      color: "var(--text-primary)",
+                      lineHeight: 1.18,
                     }}
                   >
-                    {item.date}
-                  </span>
-
-                  {/* Role + Company */}
-                  <div
-                    className="flex flex-wrap items-baseline"
-                    style={{ gap: "8px", marginBottom: "8px" }}
+                    {item.role}
+                  </h3>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontWeight: 300,
+                      fontStyle: "italic",
+                      fontSize: "clamp(24px, 2.1vw, 36px)",
+                      color: "var(--text-secondary)",
+                    }}
                   >
-                    <h3
-                      style={{
-                        fontFamily: "var(--font-sans)",
-                        fontWeight: 700,
-                        fontSize: "18px",
-                        color: "var(--text-primary)",
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      {item.role}
-                    </h3>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontWeight: 300,
-                        fontStyle: "italic",
-                        fontSize: "18px",
-                        color: "var(--text-secondary)",
-                      }}
-                    >
-                      · {item.company}
-                    </span>
-                  </div>
-
-                  {/* Description */}
+                    · {item.company}
+                  </span>
+                </div>
                   <p
                     style={{
                       fontFamily: "var(--font-body)",
                       fontWeight: 300,
-                      fontSize: "14px",
-                      lineHeight: 1.7,
+                      fontSize: "18px",
+                      lineHeight: 1.72,
                       color: "var(--text-secondary)",
-                      maxWidth: "480px",
+                      maxWidth: "760px",
                     }}
                   >
                     {item.description}
                   </p>
-                </div>
               </div>
             ))}
           </div>

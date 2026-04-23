@@ -116,27 +116,6 @@ body::before {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   GRID LINES BACKGROUND
-   Subtle horizontal rules at 80px intervals
-   ═══════════════════════════════════════════════════════════ */
-
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.3;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent 79px,
-    var(--grid-line) 79px,
-    var(--grid-line) 80px
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════
    LINK HOVER UNDERLINES
    Fill from left using background-size animation
    ═══════════════════════════════════════════════════════════ */
@@ -162,23 +141,25 @@ a:hover {
 .section {
   position: relative;
   width: 100%;
-  /* overflow: clip removed — was clipping floating hover images and parallax.
-     Sections that need clipping should set it individually. */
+  isolation: isolate;
 }
 
 .section-light {
   background-color: var(--bg-primary);
   color: var(--text-primary);
+  box-shadow: 0 0 120px rgba(249, 247, 244, 0.16);
 }
 
 .section-surface {
   background-color: var(--bg-surface);
   color: var(--text-primary);
+  box-shadow: 0 0 120px rgba(240, 237, 232, 0.18);
 }
 
 .section-dark {
   background-color: var(--bg-dark);
   color: var(--text-light);
+  box-shadow: 0 0 140px rgba(12, 12, 11, 0.32);
 }
 
 .section-content {
@@ -187,29 +168,39 @@ a:hover {
   padding: 0 var(--space-2xl);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SECTION TRANSITION DIVIDER WIPE
-   A thin horizontal accent line sweeps across on scroll
-   ═══════════════════════════════════════════════════════════ */
-
 .section + .section::before {
   content: "";
   position: absolute;
-  top: 0;
+  top: -120px;
   left: 0;
   right: 0;
-  height: 2px;
-  background: var(--accent);
-  transform: scaleX(0);
-  transform-origin: left center;
-  animation: dividerWipe 0.3s ease-out forwards;
-  animation-play-state: paused;
-  z-index: 5;
+  height: 160px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.95;
+  filter: blur(46px);
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(249, 247, 244, 0.42),
+      rgba(240, 237, 232, 0.2) 42%,
+      rgba(12, 12, 11, 0)
+    );
 }
 
-@keyframes dividerWipe {
-  0% { transform: scaleX(0); }
-  100% { transform: scaleX(1); }
+.section-dark + .section-surface::before {
+  top: -210px;
+  height: 280px;
+  opacity: 1;
+  filter: blur(72px);
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(249, 247, 244, 0.18),
+      rgba(249, 247, 244, 0.09) 34%,
+      rgba(240, 237, 232, 0.05) 56%,
+      rgba(12, 12, 11, 0) 100%
+    );
 }
 
 /* ═══════════════════════════════════════════════════════════

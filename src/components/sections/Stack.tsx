@@ -110,6 +110,19 @@ export default function Stack() {
       style={{ height: "500vh" }}
     >
       <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: "8% 8% auto",
+          height: "36vh",
+          background:
+            "radial-gradient(circle at 18% 32%, rgba(196, 185, 174, 0.16), transparent 40%), radial-gradient(circle at 82% 62%, rgba(12, 12, 11, 0.08), transparent 32%)",
+          filter: "blur(34px)",
+          pointerEvents: "none",
+          opacity: 0.9,
+        }}
+      />
+      <div
         ref={pinContainerRef}
         style={{
           height: "100vh",
@@ -137,6 +150,20 @@ export default function Stack() {
           Stack
         </span>
 
+        <p
+          style={{
+            fontFamily: "var(--font-body)",
+            fontWeight: 300,
+            fontSize: "17px",
+            lineHeight: 1.7,
+            color: "var(--text-secondary)",
+            maxWidth: "560px",
+            marginBottom: "44px",
+          }}
+        >
+          An evolving toolkit across product engineering, interface systems, and native platforms.
+        </p>
+
         {/* Horizontal Strip */}
         <div
           ref={stripRef}
@@ -154,11 +181,14 @@ export default function Stack() {
                 width: "380px",
                 minWidth: "380px",
                 height: "360px",
-                backgroundColor: "var(--bg-surface)",
-                border: "1px solid var(--grid-line)",
+                background:
+                  "linear-gradient(180deg, rgba(249, 247, 244, 0.84), rgba(240, 237, 232, 0.96))",
+                border: "1px solid rgba(196, 185, 174, 0.34)",
                 padding: "36px",
                 display: "flex",
                 flexDirection: "column",
+                boxShadow:
+                  "0 28px 64px rgba(12, 12, 11, 0.08), 0 0 0 1px rgba(249, 247, 244, 0.42) inset",
                 transition:
                   "background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease",
               }}
@@ -191,6 +221,18 @@ export default function Stack() {
               >
                 {group.label}
               </h3>
+
+              <span
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontStyle: "italic",
+                  fontSize: "28px",
+                  color: "rgba(107, 103, 96, 0.58)",
+                  marginBottom: "22px",
+                }}
+              >
+                0{SKILL_GROUPS.indexOf(group) + 1}
+              </span>
 
               {/* Skill Pills */}
               <div className="flex flex-wrap gap-2">

@@ -34,6 +34,7 @@ const CONTACT_LINKS = [
 ];
 
 const HEADING_LINES = ["Let's build something", "remarkable."];
+const COPYRIGHT_YEAR = "2026";
 
 export default function Contact() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -152,7 +153,34 @@ export default function Contact() {
       className="section section-dark relative flex flex-col items-center justify-center"
       style={{ minHeight: "110dvh", padding: "120px 24px 80px" }}
     >
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: "10% 12% auto",
+          height: "42vh",
+          background:
+            "radial-gradient(circle at 50% 22%, rgba(196, 185, 174, 0.18), transparent 40%), radial-gradient(circle at 22% 70%, rgba(249, 247, 244, 0.08), transparent 28%)",
+          filter: "blur(40px)",
+          pointerEvents: "none",
+          opacity: 0.92,
+        }}
+      />
       <div style={{ position: "relative", zIndex: 2, display: "contents" }}>
+        <span
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "10px",
+            letterSpacing: "0.42em",
+            textTransform: "uppercase",
+            color: "var(--accent)",
+            marginBottom: "20px",
+            opacity: 0.9,
+          }}
+        >
+          Contact
+        </span>
+
         {/* Main Heading — char-by-char reveal, explicit line break */}
         <h2
           ref={headingRef}
@@ -166,6 +194,7 @@ export default function Contact() {
             maxWidth: "900px",
             position: "relative",
             zIndex: 2,
+            textShadow: "0 18px 44px rgba(0, 0, 0, 0.24)",
           }}
         >
           {HEADING_LINES.map((line, lineIndex) => {
@@ -213,8 +242,9 @@ export default function Contact() {
               fontWeight: 300,
               fontSize: "16px",
               color: "var(--text-secondary)",
-              marginTop: "16px",
+              marginTop: "18px",
               textAlign: "center",
+              maxWidth: "620px",
             }}
           >
             Currently open to full-time roles and select freelance projects.
@@ -230,10 +260,13 @@ export default function Contact() {
               fontWeight: 700,
               fontSize: "20px",
               color: "var(--text-light)",
-              border: "1px solid var(--bg-dark-border)",
-              padding: "18px 40px",
+              border: "1px solid rgba(196, 185, 174, 0.32)",
+              padding: "20px 42px",
               marginTop: "40px",
-              backgroundColor: "transparent",
+              background:
+                "linear-gradient(180deg, rgba(26, 26, 24, 0.82), rgba(12, 12, 11, 0.96))",
+              boxShadow:
+                "0 22px 48px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(249, 247, 244, 0.05) inset",
               transition:
                 "background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease",
               backgroundImage: "none",
@@ -314,7 +347,7 @@ export default function Contact() {
               color: "var(--bg-dark-border)",
             }}
           >
-            © {new Date().getFullYear()} Kanishk Srivastava
+            © {COPYRIGHT_YEAR} Kanishk Srivastava
           </span>
           <span
             style={{
