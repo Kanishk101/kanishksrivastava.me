@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { initLenis, destroyLenis } from "@/lib/lenis";
+import { useLoader } from "@/contexts/LoaderContext";
 
 /* ─── Dynamic imports for client-only components ─── */
 const Cursor = dynamic(() => import("@/components/Cursor/Cursor"), {
@@ -11,20 +12,32 @@ const Cursor = dynamic(() => import("@/components/Cursor/Cursor"), {
 const Nav = dynamic(() => import("@/components/Nav/Nav"), {
   ssr: false,
 });
+const Loader = dynamic(() => import("@/components/Loader/Loader"), {
+  ssr: false,
+});
 
-/* ─── Section imports ─── */
+/* ─── Hero is above-the-fold — static import for priority ─── */
 import Hero from "@/components/sections/Hero";
-import About from "@/components/sections/About";
-import Quote from "@/components/sections/Quote";
-import Work from "@/components/sections/Work";
-import Stack from "@/components/sections/Stack";
-import Experience from "@/components/sections/Experience";
-import Contact from "@/components/sections/Contact";
+
+/* ─── Below-fold sections — lazy loaded ─── */
+const About = dynamic(() => import("@/components/sections/About"));
+const Quote = dynamic(() => import("@/components/sections/Quote"));
+const Work = dynamic(() => import("@/components/sections/Work"));
+const Stack = dynamic(() => import("@/components/sections/Stack"));
+const Experience = dynamic(() => import("@/components/sections/Experience"));
+const Contact = dynamic(() => import("@/components/sections/Contact"));
 
 export default function Home() {
+  const { loaderComplete } = useLoader();
+
   useEffect(() => {
-    // Initialize smooth scroll (desktop only)
-    const isMobile = window.matchMedia("(pointer: coarse)").matches;
+    // Initialize smooth scroll (desktop only) after loader completes
+    if (!loaderComplete) return;
+
+    const isMobile =
+      window.matchMedia("(pointer: coarse)").matches ||
+      window.innerWidth < 768;
+
     if (!isMobile) {
       initLenis();
     }
@@ -32,10 +45,11 @@ export default function Home() {
     return () => {
       destroyLenis();
     };
-  }, []);
+  }, [loaderComplete]);
 
   return (
     <>
+      <Loader />
       <Cursor />
       <Nav />
       <main>

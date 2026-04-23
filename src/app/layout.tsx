@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Syne, Outfit } from "next/font/google";
+import Providers from "./providers";
 import "./globals.css";
 
 /* ─── Font Configuration ─── */
@@ -66,7 +67,9 @@ export default function RootLayout({
       lang="en"
       className={`${cormorant.variable} ${syne.variable} ${outfit.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { useLoader } from "@/contexts/LoaderContext";
 
 const EXPERIENCE = [
   {
@@ -35,47 +36,63 @@ const EXPERIENCE = [
 
 export default function Experience() {
   const sectionRef = useRef<HTMLElement>(null);
-  const timelineRef = useRef<SVGLineElement>(null);
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const timelineLineRef = useRef<SVGLineElement>(null);
+  const timelineContainerRef = useRef<HTMLDivElement>(null);
   const entriesRef = useRef<(HTMLDivElement | null)[]>([]);
-  const nodesRef = useRef<(SVGCircleElement | null)[]>([]);
+  const nodesRef = useRef<(HTMLDivElement | null)[]>([]);
+  const { loaderComplete } = useLoader();
 
   useEffect(() => {
-    if (!sectionRef.current) return;
+    if (!sectionRef.current || !loaderComplete) return;
 
     const ctx = gsap.context(() => {
-      // Timeline line draws itself
-      if (timelineRef.current) {
-        const lineLength = timelineRef.current.getTotalLength();
-        gsap.fromTo(
-          timelineRef.current,
-          {
-            strokeDasharray: lineLength,
-            strokeDashoffset: lineLength,
+      // Section label
+      gsap.fromTo(
+        labelRef.current,
+        { opacity: 0, y: 15 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 70%",
+            toggleActions: "play none none reverse",
           },
+        }
+      );
+
+      // Timeline line draws itself using clip-path
+      if (timelineContainerRef.current) {
+        gsap.fromTo(
+          timelineContainerRef.current.querySelector(".timeline-line"),
+          { scaleY: 0, transformOrigin: "top center" },
           {
-            strokeDashoffset: 0,
+            scaleY: 1,
             ease: "none",
             scrollTrigger: {
               trigger: sectionRef.current,
-              start: "top 60%",
+              start: "top 55%",
               end: "bottom 80%",
-              scrub: true,
+              scrub: 0.5,
             },
           }
         );
       }
 
-      // Entries and nodes animate in
+      // Entries slide in from right as timeline passes
       entriesRef.current.forEach((entry, i) => {
         if (!entry) return;
 
         gsap.fromTo(
           entry,
-          { opacity: 0, x: 20 },
+          { opacity: 0, x: 25 },
           {
             opacity: 1,
             x: 0,
-            duration: 0.5,
+            duration: 0.6,
             ease: "power2.out",
             scrollTrigger: {
               trigger: entry,
@@ -85,13 +102,14 @@ export default function Experience() {
           }
         );
 
+        // Node circles scale in
         if (nodesRef.current[i]) {
           gsap.fromTo(
             nodesRef.current[i],
-            { scale: 0, transformOrigin: "center" },
+            { scale: 0 },
             {
               scale: 1,
-              duration: 0.3,
+              duration: 0.4,
               ease: "back.out(2)",
               scrollTrigger: {
                 trigger: entry,
@@ -105,7 +123,7 @@ export default function Experience() {
     }, sectionRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [loaderComplete]);
 
   return (
     <section
@@ -113,11 +131,12 @@ export default function Experience() {
       id="experience"
       data-section="experience"
       className="section section-light"
-      style={{ minHeight: "100vh", padding: "120px 0" }}
+      style={{ minHeight: "100vh", padding: "160px 0 120px" }}
     >
       <div className="section-content">
         {/* Section Label */}
         <span
+          ref={labelRef}
           style={{
             fontFamily: "var(--font-sans)",
             fontWeight: 400,
@@ -126,60 +145,64 @@ export default function Experience() {
             textTransform: "uppercase",
             color: "var(--text-muted)",
             display: "block",
-            marginBottom: "48px",
+            marginBottom: "56px",
+            opacity: 0,
           }}
         >
           04 — Experience
         </span>
 
-        {/* Timeline */}
-        <div className="relative" style={{ paddingLeft: "40px" }}>
-          {/* SVG Timeline Spine */}
-          <svg
-            className="absolute left-0 top-0"
-            style={{ width: "2px", height: "100%" }}
-          >
-            <line
-              ref={timelineRef}
-              x1="1"
-              y1="0"
-              x2="1"
-              y2="100%"
-              stroke="var(--accent)"
-              strokeWidth="2"
-            />
-          </svg>
+        {/* Timeline Container */}
+        <div
+          ref={timelineContainerRef}
+          className="relative"
+          style={{ paddingLeft: "48px" }}
+        >
+          {/* Timeline Spine — thin vertical line */}
+          <div
+            className="timeline-line absolute"
+            style={{
+              left: "0",
+              top: "0",
+              width: "2px",
+              height: "100%",
+              backgroundColor: "var(--accent)",
+              transformOrigin: "top center",
+              transform: "scaleY(0)",
+            }}
+          />
 
           {/* Entries */}
-          <div className="flex flex-col gap-16">
+          <div className="flex flex-col" style={{ gap: "56px" }}>
             {EXPERIENCE.map((item, i) => (
               <div
                 key={i}
-                ref={(el) => { entriesRef.current[i] = el; }}
+                ref={(el) => {
+                  entriesRef.current[i] = el;
+                }}
                 className="relative"
                 style={{ opacity: 0 }}
               >
-                {/* Timeline Node */}
-                <svg
+                {/* Timeline Node — circle on the spine */}
+                <div
+                  ref={(el) => {
+                    nodesRef.current[i] = el;
+                  }}
                   className="absolute"
                   style={{
-                    left: "-44px",
-                    top: "4px",
+                    left: "-52px",
+                    top: "6px",
                     width: "10px",
                     height: "10px",
+                    borderRadius: "50%",
+                    backgroundColor: "var(--accent)",
+                    transform: "scale(0)",
                   }}
-                >
-                  <circle
-                    ref={(el) => { nodesRef.current[i] = el; }}
-                    cx="5"
-                    cy="5"
-                    r="3"
-                    fill="var(--accent)"
-                  />
-                </svg>
+                />
 
                 {/* Content */}
                 <div>
+                  {/* Date */}
                   <span
                     style={{
                       fontFamily: "var(--font-sans)",
@@ -187,18 +210,24 @@ export default function Experience() {
                       fontSize: "11px",
                       color: "var(--text-muted)",
                       display: "block",
-                      marginBottom: "4px",
+                      marginBottom: "6px",
                     }}
                   >
                     {item.date}
                   </span>
-                  <div className="flex flex-wrap items-baseline gap-2">
+
+                  {/* Role + Company */}
+                  <div
+                    className="flex flex-wrap items-baseline"
+                    style={{ gap: "8px", marginBottom: "8px" }}
+                  >
                     <h3
                       style={{
                         fontFamily: "var(--font-sans)",
                         fontWeight: 700,
                         fontSize: "18px",
                         color: "var(--text-primary)",
+                        lineHeight: 1.3,
                       }}
                     >
                       {item.role}
@@ -215,6 +244,8 @@ export default function Experience() {
                       · {item.company}
                     </span>
                   </div>
+
+                  {/* Description */}
                   <p
                     style={{
                       fontFamily: "var(--font-body)",
@@ -223,7 +254,6 @@ export default function Experience() {
                       lineHeight: 1.7,
                       color: "var(--text-secondary)",
                       maxWidth: "480px",
-                      marginTop: "8px",
                     }}
                   >
                     {item.description}

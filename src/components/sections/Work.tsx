@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { AnimatePresence, motion } from "framer-motion";
+import { useLoader } from "@/contexts/LoaderContext";
 
 interface Project {
   id: string;
@@ -11,6 +12,7 @@ interface Project {
   type: string;
   year: string;
   description: string;
+  secondaryDescription: string;
   stack: string[];
   github?: string;
   live?: string;
@@ -25,6 +27,8 @@ const PROJECTS: Project[] = [
     year: "2024",
     description:
       "A beautifully crafted iOS application that pushes the boundaries of mobile interaction design. Built with SwiftUI and backed by a robust server architecture, it delivers a seamless user experience across all Apple devices.",
+    secondaryDescription:
+      "The project focused on creating fluid animations and gesture-driven interfaces that feel native and responsive, with offline-first data persistence and real-time sync capabilities.",
     stack: ["Swift", "SwiftUI", "Firebase", "Node.js"],
     github: "#",
     live: "#",
@@ -37,6 +41,8 @@ const PROJECTS: Project[] = [
     year: "2024",
     description:
       "A full-stack web platform reimagining how teams collaborate on creative projects. Features real-time updates, sophisticated permission systems, and an interface that gets out of your way.",
+    secondaryDescription:
+      "Built with a focus on performance and accessibility, achieving sub-second page loads and WCAG AA compliance throughout the entire application.",
     stack: ["Next.js", "TypeScript", "PostgreSQL", "Tailwind"],
     github: "#",
     live: "#",
@@ -49,6 +55,8 @@ const PROJECTS: Project[] = [
     year: "2023",
     description:
       "An end-to-end application solving complex data visualization challenges. Combines a React frontend with a Python backend to process and present analytical insights in real time.",
+    secondaryDescription:
+      "Features an interactive dashboard with drag-and-drop widgets, custom charting library, and WebSocket-powered live data streaming for instant updates.",
     stack: ["React", "Python", "GraphQL", "Docker"],
     github: "#",
     live: "#",
@@ -61,6 +69,8 @@ const PROJECTS: Project[] = [
     year: "2023",
     description:
       "A cross-platform mobile experience paired with a sophisticated REST API. Designed for scale, built for delight, and optimized for the moments that matter most to users.",
+    secondaryDescription:
+      "The API handles 10K+ requests per minute with intelligent caching, rate limiting, and comprehensive logging. The mobile client features offline support and push notifications.",
     stack: ["React Native", "Express", "MongoDB", "Redis"],
     github: "#",
     live: "#",
@@ -71,11 +81,46 @@ export default function Work() {
   const sectionRef = useRef<HTMLElement>(null);
   const rowsRef = useRef<(HTMLDivElement | null)[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [hoverImagePos, setHoverImagePos] = useState({ x: 0, y: 0 });
   const [hoveredProject, setHoveredProject] = useState<string | null>(null);
+  const hoverImageRef = useRef<HTMLDivElement>(null);
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const imgPosRef = useRef({ x: 0, y: 0 });
+  const { loaderComplete } = useLoader();
 
+  // ═══════════════════════════════════════════════
+  // FLOATING HOVER IMAGE — follows cursor with lerp
+  // ═══════════════════════════════════════════════
   useEffect(() => {
-    if (!sectionRef.current) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX + 20, y: e.clientY - 70 };
+    };
+
+    const lerpImage = () => {
+      if (!hoverImageRef.current) return;
+      const lerp = 0.12;
+      imgPosRef.current.x +=
+        (mouseRef.current.x - imgPosRef.current.x) * lerp;
+      imgPosRef.current.y +=
+        (mouseRef.current.y - imgPosRef.current.y) * lerp;
+
+      hoverImageRef.current.style.left = `${imgPosRef.current.x}px`;
+      hoverImageRef.current.style.top = `${imgPosRef.current.y}px`;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    gsap.ticker.add(lerpImage);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      gsap.ticker.remove(lerpImage);
+    };
+  }, []);
+
+  // ═══════════════════════════════════════════════
+  // SCROLL ANIMATIONS
+  // ═══════════════════════════════════════════════
+  useEffect(() => {
+    if (!sectionRef.current || !loaderComplete) return;
 
     const ctx = gsap.context(() => {
       rowsRef.current.forEach((row, i) => {
@@ -91,7 +136,7 @@ export default function Work() {
             ease: "power2.out",
             scrollTrigger: {
               trigger: sectionRef.current,
-              start: "top 70%",
+              start: "top 65%",
               toggleActions: "play none none reverse",
             },
           }
@@ -100,11 +145,32 @@ export default function Work() {
     }, sectionRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [loaderComplete]);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    setHoverImagePos({ x: e.clientX + 20, y: e.clientY - 70 });
-  };
+  // ═══════════════════════════════════════════════
+  // BODY SCROLL LOCK when modal is open
+  // ═══════════════════════════════════════════════
+  useEffect(() => {
+    if (selectedProject) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [selectedProject]);
+
+  // ═══════════════════════════════════════════════
+  // ESCAPE KEY to close modal
+  // ═══════════════════════════════════════════════
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedProject(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <>
@@ -113,7 +179,7 @@ export default function Work() {
         id="work"
         data-section="work"
         className="section section-surface"
-        style={{ minHeight: "100vh", padding: "120px 0" }}
+        style={{ minHeight: "100vh", padding: "160px 0 120px" }}
       >
         <div className="section-content">
           {/* Section Label */}
@@ -144,22 +210,24 @@ export default function Work() {
             {PROJECTS.map((project, i) => (
               <div
                 key={project.id}
-                ref={(el) => { rowsRef.current[i] = el; }}
-                className="group"
+                ref={(el) => {
+                  rowsRef.current[i] = el;
+                }}
+                className="project-row"
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "60px 1fr auto auto",
+                  gridTemplateColumns: "48px 1fr auto auto",
                   alignItems: "center",
                   gap: "24px",
                   height: "80px",
                   borderBottom: "1px solid var(--grid-line)",
                   opacity: 0,
-                  transition: "background-color 0.2s ease",
                   padding: "0 16px",
+                  position: "relative",
+                  transition: "background-color 0.25s ease",
                 }}
                 onMouseEnter={() => setHoveredProject(project.id)}
                 onMouseLeave={() => setHoveredProject(null)}
-                onMouseMove={handleMouseMove}
                 onClick={() => setSelectedProject(project)}
                 data-cursor="pointer"
                 role="button"
@@ -168,7 +236,8 @@ export default function Work() {
                   if (e.key === "Enter") setSelectedProject(project);
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--grid-line)";
+                  e.currentTarget.style.backgroundColor =
+                    "rgba(232, 228, 223, 0.6)";
                 }}
                 onMouseOut={(e) => {
                   e.currentTarget.style.backgroundColor = "transparent";
@@ -186,17 +255,34 @@ export default function Work() {
                   {project.index}
                 </span>
 
-                {/* Name */}
+                {/* Name with hover underline */}
                 <span
-                  className="relative"
+                  className="relative inline-block"
                   style={{
                     fontFamily: "var(--font-display)",
                     fontWeight: 700,
-                    fontSize: "clamp(24px, 3vw, 36px)",
+                    fontSize: "clamp(22px, 3vw, 36px)",
                     color: "var(--text-primary)",
                   }}
                 >
                   {project.name}
+                  {/* Animated underline — wipes from left */}
+                  <span
+                    style={{
+                      position: "absolute",
+                      bottom: "2px",
+                      left: 0,
+                      width: "100%",
+                      height: "1.5px",
+                      backgroundColor: "var(--text-primary)",
+                      transform:
+                        hoveredProject === project.id
+                          ? "scaleX(1)"
+                          : "scaleX(0)",
+                      transformOrigin: "left center",
+                      transition: "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+                    }}
+                  />
                 </span>
 
                 {/* Type */}
@@ -230,42 +316,44 @@ export default function Work() {
           </div>
         </div>
 
-        {/* Floating Hover Image */}
-        {hoveredProject && (
-          <div
+        {/* ═══ FLOATING HOVER IMAGE ═══ */}
+        <div
+          ref={hoverImageRef}
+          style={{
+            position: "fixed",
+            width: "200px",
+            height: "140px",
+            backgroundColor: "var(--bg-dark-elevated)",
+            transform: "rotate(-3deg)",
+            pointerEvents: "none",
+            zIndex: 60,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: hoveredProject ? 1 : 0,
+            scale: hoveredProject ? "1" : "0.8",
+            transition: "opacity 0.25s ease, scale 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+            boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)",
+            overflow: "hidden",
+          }}
+        >
+          <span
             style={{
-              position: "fixed",
-              left: hoverImagePos.x,
-              top: hoverImagePos.y,
-              width: "200px",
-              height: "140px",
-              backgroundColor: "var(--bg-dark-elevated)",
-              transform: "rotate(-3deg) scale(1)",
-              pointerEvents: "none",
-              zIndex: 60,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "opacity 0.2s ease",
-              boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+              fontFamily: "var(--font-sans)",
+              fontSize: "10px",
+              color: "var(--text-muted)",
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
             }}
           >
-            <span
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "10px",
-                color: "var(--text-muted)",
-                letterSpacing: "0.2em",
-                textTransform: "uppercase",
-              }}
-            >
-              {PROJECTS.find((p) => p.id === hoveredProject)?.name}
-            </span>
-          </div>
-        )}
+            {PROJECTS.find((p) => p.id === hoveredProject)?.name || ""}
+          </span>
+        </div>
       </section>
 
-      {/* Full-Screen Case Study Modal */}
+      {/* ═══════════════════════════════════════════════
+           FULL-SCREEN CASE STUDY MODAL
+           ═══════════════════════════════════════════════ */}
       <AnimatePresence>
         {selectedProject && (
           <motion.div
@@ -280,33 +368,56 @@ export default function Work() {
               backgroundColor: "var(--bg-dark)",
               overflowY: "auto",
             }}
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setSelectedProject(null);
-            }}
           >
             {/* Close Button */}
             <button
               onClick={() => setSelectedProject(null)}
+              className="fixed z-[101] group"
               style={{
-                position: "fixed",
                 top: "24px",
                 right: "48px",
-                fontFamily: "var(--font-sans)",
-                fontSize: "24px",
-                color: "var(--text-light)",
                 background: "none",
                 border: "none",
-                zIndex: 101,
-                padding: "8px",
+                padding: "12px",
               }}
               aria-label="Close project"
             >
-              ×
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--text-light)"
+                strokeWidth="1.5"
+                style={{
+                  transition: "transform 0.3s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "rotate(90deg)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "rotate(0deg)";
+                }}
+              >
+                <line x1="6" y1="6" x2="18" y2="18" />
+                <line x1="18" y1="6" x2="6" y2="18" />
+              </svg>
             </button>
 
-            <div style={{ padding: "80px 48px", maxWidth: "1200px", margin: "0 auto" }}>
+            <div
+              style={{
+                padding: "80px 48px 120px",
+                maxWidth: "1200px",
+                margin: "0 auto",
+              }}
+            >
               {/* Project Header */}
-              <div style={{ marginBottom: "48px" }}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                style={{ marginBottom: "48px" }}
+              >
                 <span
                   style={{
                     fontFamily: "var(--font-sans)",
@@ -324,38 +435,72 @@ export default function Work() {
                     fontSize: "clamp(36px, 5vw, 64px)",
                     color: "var(--text-light)",
                     marginTop: "8px",
+                    lineHeight: 1.1,
                   }}
                 >
                   {selectedProject.name}
                 </h2>
-              </div>
+                <span
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "11px",
+                    letterSpacing: "0.3em",
+                    textTransform: "uppercase",
+                    color: "var(--text-secondary)",
+                    marginTop: "12px",
+                    display: "inline-block",
+                  }}
+                >
+                  {selectedProject.type} — {selectedProject.year}
+                </span>
+              </motion.div>
 
               {/* Hero Image Placeholder */}
-              <div
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4, duration: 0.6 }}
                 style={{
                   width: "100%",
                   height: "50vh",
                   backgroundColor: "var(--bg-dark-elevated)",
-                  marginBottom: "48px",
+                  marginBottom: "64px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  position: "relative",
+                  overflow: "hidden",
                 }}
               >
+                {/* Subtle gradient overlay */}
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background:
+                      "linear-gradient(135deg, rgba(196, 185, 174, 0.05), transparent)",
+                  }}
+                />
                 <span
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: "12px",
                     color: "var(--text-muted)",
                     letterSpacing: "0.3em",
+                    textTransform: "uppercase",
                   }}
                 >
                   [ Project Screenshot ]
                 </span>
-              </div>
+              </motion.div>
 
               {/* Content Grid */}
-              <div className="flex flex-col md:flex-row gap-16">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="flex flex-col md:flex-row gap-16"
+              >
                 {/* Left — Description & Stack */}
                 <div className="flex-1">
                   <p
@@ -365,11 +510,39 @@ export default function Work() {
                       fontSize: "16px",
                       lineHeight: 1.8,
                       color: "var(--text-secondary)",
-                      marginBottom: "32px",
+                      marginBottom: "20px",
                     }}
                   >
                     {selectedProject.description}
                   </p>
+                  <p
+                    style={{
+                      fontFamily: "var(--font-body)",
+                      fontWeight: 300,
+                      fontSize: "16px",
+                      lineHeight: 1.8,
+                      color: "var(--text-secondary)",
+                      marginBottom: "40px",
+                    }}
+                  >
+                    {selectedProject.secondaryDescription}
+                  </p>
+
+                  {/* Tech Stack Label */}
+                  <span
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontWeight: 700,
+                      fontSize: "10px",
+                      letterSpacing: "0.4em",
+                      textTransform: "uppercase",
+                      color: "var(--text-muted)",
+                      display: "block",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    Stack
+                  </span>
 
                   {/* Tech Stack Pills */}
                   <div className="flex flex-wrap gap-2">
@@ -385,6 +558,17 @@ export default function Work() {
                           border: "1px solid var(--bg-dark-border)",
                           padding: "6px 14px",
                           borderRadius: "2px",
+                          transition:
+                            "border-color 0.2s ease, color 0.2s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = "var(--accent)";
+                          e.currentTarget.style.color = "var(--text-light)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor =
+                            "var(--bg-dark-border)";
+                          e.currentTarget.style.color = "var(--accent)";
                         }}
                       >
                         {tech}
@@ -394,7 +578,23 @@ export default function Work() {
                 </div>
 
                 {/* Right — Links */}
-                <div className="flex flex-col gap-4">
+                <div
+                  className="flex flex-col gap-6"
+                  style={{ minWidth: "180px" }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontWeight: 700,
+                      fontSize: "10px",
+                      letterSpacing: "0.4em",
+                      textTransform: "uppercase",
+                      color: "var(--text-muted)",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Links
+                  </span>
                   {selectedProject.live && (
                     <a
                       href={selectedProject.live}
@@ -402,12 +602,25 @@ export default function Work() {
                       rel="noopener noreferrer"
                       style={{
                         fontFamily: "var(--font-sans)",
-                        fontSize: "14px",
+                        fontSize: "16px",
+                        fontWeight: 400,
                         color: "var(--text-light)",
-                        letterSpacing: "0.1em",
+                        letterSpacing: "0.05em",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        backgroundImage: "none",
+                        transition: "opacity 0.2s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.opacity = "0.7";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.opacity = "1";
                       }}
                     >
-                      View Live ↗
+                      View Live
+                      <span style={{ fontSize: "14px" }}>↗</span>
                     </a>
                   )}
                   {selectedProject.github && (
@@ -417,16 +630,29 @@ export default function Work() {
                       rel="noopener noreferrer"
                       style={{
                         fontFamily: "var(--font-sans)",
-                        fontSize: "14px",
+                        fontSize: "16px",
+                        fontWeight: 400,
                         color: "var(--text-light)",
-                        letterSpacing: "0.1em",
+                        letterSpacing: "0.05em",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        backgroundImage: "none",
+                        transition: "opacity 0.2s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.opacity = "0.7";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.opacity = "1";
                       }}
                     >
-                      GitHub ↗
+                      GitHub
+                      <span style={{ fontSize: "14px" }}>↗</span>
                     </a>
                   )}
                 </div>
-              </div>
+              </motion.div>
             </div>
           </motion.div>
         )}

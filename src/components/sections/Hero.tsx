@@ -1,118 +1,234 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { useLoader } from "@/contexts/LoaderContext";
 
 export default function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
-  const nameRef = useRef<HTMLHeadingElement>(null);
+  const pinContainerRef = useRef<HTMLDivElement>(null);
+  const nameContainerRef = useRef<HTMLDivElement>(null);
   const roleRef = useRef<HTMLParagraphElement>(null);
   const manifestoRef = useRef<HTMLParagraphElement>(null);
   const scrollIndicatorRef = useRef<HTMLDivElement>(null);
+  const charsRef = useRef<HTMLSpanElement[]>([]);
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const rafRef = useRef<number>(0);
+  const { loaderComplete } = useLoader();
+
+  // Split name into individually-addressable characters
+  const renderNameChars = useCallback((text: string, lineClass: string) => {
+    return text.split("").map((char, i) => (
+      <span
+        key={`${lineClass}-${i}`}
+        ref={(el) => {
+          if (el) charsRef.current.push(el);
+        }}
+        className="hero-char"
+        style={{
+          display: "inline-block",
+          willChange: "transform",
+          transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        }}
+      >
+        {char === " " ? "\u00A0" : char}
+      </span>
+    ));
+  }, []);
 
   useEffect(() => {
-    if (!sectionRef.current || !nameRef.current) return;
+    if (!sectionRef.current || !nameContainerRef.current || !loaderComplete) return;
+
+    const section = sectionRef.current;
+    const nameContainer = nameContainerRef.current;
 
     const ctx = gsap.context(() => {
-      // Perspective scroll transform on the name
-      gsap.fromTo(
-        nameRef.current,
+      // ═══════════════════════════════════════════════
+      // MAIN EFFECT: Perspective Scroll Transform
+      // ═══════════════════════════════════════════════
+      // Pin the hero content for the duration of the scroll
+      const perspectiveTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: "top top",
+          end: "bottom top",
+          scrub: 0.8,
+          pin: pinContainerRef.current,
+          pinSpacing: false,
+        },
+      });
+
+      // Name: flat/distant → erupts toward viewer
+      perspectiveTl.fromTo(
+        nameContainer,
         {
           rotateX: 60,
           scale: 0.4,
           letterSpacing: "0.5em",
           opacity: 0.6,
-          transformOrigin: "center center",
         },
         {
           rotateX: 0,
-          scale: 1.1,
+          scale: 1.2,
           letterSpacing: "-0.02em",
           opacity: 1,
           ease: "none",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top top",
-            end: "bottom top",
-            scrub: true,
-            pin: false,
-          },
-        }
+        },
+        0
       );
 
-      // Role line fades in after scroll settles
-      gsap.fromTo(
+      // Role line fades in at ~70% scroll progress
+      perspectiveTl.fromTo(
         roleRef.current,
-        { opacity: 0, y: 20 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "40% top",
-            toggleActions: "play none none reverse",
-          },
-        }
+        { opacity: 0, y: 25 },
+        { opacity: 1, y: 0, duration: 0.15, ease: "power2.out" },
+        0.65
       );
 
-      // Manifesto
-      gsap.fromTo(
+      // Manifesto fades in slightly after role
+      perspectiveTl.fromTo(
         manifestoRef.current,
-        { opacity: 0, y: 15 },
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.15, ease: "power2.out" },
+        0.75
+      );
+
+      // Scroll indicator fades out as user scrolls
+      perspectiveTl.to(
+        scrollIndicatorRef.current,
+        { opacity: 0, duration: 0.2, ease: "none" },
+        0.1
+      );
+
+      // ═══════════════════════════════════════════════
+      // ENTRY ANIMATION (after loader)
+      // ═══════════════════════════════════════════════
+      const entryTl = gsap.timeline({ delay: 0.2 });
+
+      // Name fades in with a subtle lift
+      entryTl.fromTo(
+        nameContainer,
+        { opacity: 0, y: 30 },
         {
-          opacity: 1,
+          opacity: 0.6, // starts at the scrub initial opacity
           y: 0,
-          duration: 0.8,
-          delay: 0.2,
+          duration: 1,
           ease: "power2.out",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "45% top",
-            toggleActions: "play none none reverse",
-          },
         }
       );
-    }, sectionRef);
 
-    return () => ctx.revert();
-  }, []);
+      // Scroll indicator pulses in
+      entryTl.fromTo(
+        scrollIndicatorRef.current,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.6, ease: "power2.out" },
+        "-=0.4"
+      );
+    }, section);
+
+    // ═══════════════════════════════════════════════
+    // MAGNETIC CURSOR: Character-level distortion
+    // ═══════════════════════════════════════════════
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const animateChars = () => {
+      const chars = charsRef.current;
+      const { x: mx, y: my } = mouseRef.current;
+
+      chars.forEach((char) => {
+        if (!char) return;
+        const rect = char.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = mx - cx;
+        const dy = my - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxDist = 200; // radius of effect
+
+        if (dist < maxDist) {
+          const strength = (1 - dist / maxDist) * 0.35;
+          const moveX = dx * strength * 0.15;
+          const moveY = dy * strength * 0.1;
+          char.style.transform = `translate(${moveX}px, ${moveY}px)`;
+        } else {
+          char.style.transform = "translate(0, 0)";
+        }
+      });
+
+      rafRef.current = requestAnimationFrame(animateChars);
+    };
+
+    // Only enable magnetic on desktop
+    const isDesktop = window.matchMedia("(pointer: fine)").matches;
+    if (isDesktop) {
+      window.addEventListener("mousemove", handleMouseMove);
+      rafRef.current = requestAnimationFrame(animateChars);
+    }
+
+    return () => {
+      ctx.revert();
+      window.removeEventListener("mousemove", handleMouseMove);
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, [loaderComplete]);
+
+  // Reset chars ref on each render
+  charsRef.current = [];
 
   return (
     <section
       ref={sectionRef}
       id="hero"
       data-section="hero"
-      className="section section-light relative flex items-center justify-center"
+      className="section section-light relative"
       style={{
-        height: "200vh",
-        perspective: "800px",
+        height: "300vh",
       }}
     >
+      {/* Pinned content container */}
       <div
-        className="fixed top-0 left-0 w-full h-screen flex flex-col items-center justify-center"
-        style={{ zIndex: 1 }}
+        ref={pinContainerRef}
+        className="w-full flex flex-col items-center justify-center relative"
+        style={{
+          height: "100vh",
+          perspective: "800px",
+          overflow: "hidden",
+        }}
       >
         {/* Name — The Visual */}
-        <h1
-          ref={nameRef}
+        <div
+          ref={nameContainerRef}
           style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 300,
-            fontSize: "clamp(48px, 15vw, 200px)",
-            lineHeight: 0.9,
-            color: "var(--text-primary)",
+            transformStyle: "preserve-3d",
+            willChange: "transform, opacity, letter-spacing",
             textAlign: "center",
-            willChange: "transform, opacity",
+            /* Initial state matches GSAP fromTo 'from' — prevents flash */
+            transform: "rotateX(60deg) scale(0.4)",
+            letterSpacing: "0.5em",
+            opacity: 0,
           }}
         >
-          Kanishk
-          <br />
-          Srivastava
-        </h1>
+          <h1
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 300,
+              fontSize: "clamp(48px, 15vw, 200px)",
+              lineHeight: 0.85,
+              color: "var(--text-primary)",
+              margin: 0,
+              padding: 0,
+            }}
+          >
+            <span className="block">{renderNameChars("Kanishk", "line1")}</span>
+            <span className="block" style={{ marginTop: "0.05em" }}>
+              {renderNameChars("Srivastava", "line2")}
+            </span>
+          </h1>
+        </div>
 
-        {/* Role line */}
+        {/* Role line — appears after scroll */}
         <p
           ref={roleRef}
           style={{
@@ -124,6 +240,7 @@ export default function Hero() {
             color: "var(--text-secondary)",
             marginTop: "32px",
             opacity: 0,
+            textAlign: "center",
           }}
         >
           Full-Stack Engineer · iOS Developer · Creative Technologist
@@ -151,9 +268,15 @@ export default function Hero() {
         {/* Scroll Indicator */}
         <div
           ref={scrollIndicatorRef}
-          className="absolute bottom-12 flex flex-col items-center gap-2"
+          className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+          style={{ opacity: 0 }}
         >
-          <svg width="1" height="40" className="overflow-visible">
+          <svg
+            width="1"
+            height="40"
+            className="overflow-visible"
+            aria-hidden="true"
+          >
             <line
               x1="0.5"
               y1="0"

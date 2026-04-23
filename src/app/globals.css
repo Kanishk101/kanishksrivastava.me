@@ -101,14 +101,9 @@ html {
   outline-offset: 4px;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   CUSTOM CURSOR (hide default on desktop)
-   ═══════════════════════════════════════════════════════════ */
-
-@media (pointer: fine) {
-  * {
-    cursor: none !important;
-  }
+/* Remove default focus ring for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -121,17 +116,12 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 9990; /* Below cursor (9998/9999) */
   pointer-events: none;
   opacity: 0.04;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 256px 256px;
-}
-
-/* Disable grain on dark sections (they handle it themselves) */
-.section-dark body::before {
-  display: none;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -153,59 +143,6 @@ body::after {
     var(--grid-line) 79px,
     var(--grid-line) 80px
   );
-}
-
-/* ═══════════════════════════════════════════════════════════
-   CURSOR ELEMENTS
-   ═══════════════════════════════════════════════════════════ */
-
-#cursor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: var(--cursor-size);
-  height: var(--cursor-size);
-  background-color: var(--text-primary);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 10000;
-  transform: translate(-50%, -50%);
-  transition: width 0.3s var(--ease-out),
-              height 0.3s var(--ease-out),
-              background-color 0.3s var(--ease-out),
-              opacity 0.3s var(--ease-out);
-  mix-blend-mode: difference;
-}
-
-#cursor-follower {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: var(--cursor-follower-size);
-  height: var(--cursor-follower-size);
-  border: 1.5px solid var(--text-primary);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 10000;
-  transform: translate(-50%, -50%);
-  opacity: 0;
-  transition: width 0.4s var(--ease-out),
-              height 0.4s var(--ease-out),
-              opacity 0.3s var(--ease-out),
-              border-color 0.3s var(--ease-out);
-  mix-blend-mode: difference;
-}
-
-/* Cursor states */
-#cursor.hover-link {
-  width: var(--cursor-follower-size);
-  height: var(--cursor-follower-size);
-  background-color: transparent;
-  border: 1.5px solid var(--text-primary);
-}
-
-#cursor.hover-link + #cursor-follower {
-  opacity: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -259,6 +196,31 @@ a:hover {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   SECTION TRANSITION DIVIDER WIPE
+   A thin horizontal accent line sweeps across on scroll
+   ═══════════════════════════════════════════════════════════ */
+
+.section + .section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: dividerWipe 0.3s ease-out forwards;
+  animation-play-state: paused;
+  z-index: 5;
+}
+
+@keyframes dividerWipe {
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+
+/* ═══════════════════════════════════════════════════════════
    REDUCED MOTION
    ═══════════════════════════════════════════════════════════ */
 
@@ -270,6 +232,10 @@ a:hover {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  body::before {
+    display: none; /* Remove grain for reduced motion */
   }
 }
 
@@ -285,5 +251,15 @@ a:hover {
   #cursor,
   #cursor-follower {
     display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .section-content {
+    padding: 0 var(--space-lg);
   }
 }

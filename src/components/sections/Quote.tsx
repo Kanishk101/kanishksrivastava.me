@@ -2,20 +2,26 @@
 
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { useLoader } from "@/contexts/LoaderContext";
 
 export default function Quote() {
   const sectionRef = useRef<HTMLElement>(null);
   const quoteRef = useRef<HTMLQuoteElement>(null);
   const attrRef = useRef<HTMLParagraphElement>(null);
+  const { loaderComplete } = useLoader();
 
   useEffect(() => {
-    if (!sectionRef.current || !quoteRef.current) return;
+    if (!sectionRef.current || !quoteRef.current || !loaderComplete) return;
 
     const ctx = gsap.context(() => {
-      // Split quote into words and wrap each in a span
+      // ═══════════════════════════════════════════════
+      // WORD-BY-WORD REVEAL — feels like the quote
+      // is being spoken, words arrive with weight
+      // ═══════════════════════════════════════════════
       const quoteEl = quoteRef.current!;
       const text = quoteEl.textContent || "";
       const words = text.split(" ");
+
       quoteEl.innerHTML = words
         .map(
           (word) =>
@@ -28,11 +34,12 @@ export default function Quote() {
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 60%",
+          start: "top 55%",
           toggleActions: "play none none reverse",
         },
       });
 
+      // Each word reveals individually
       tl.to(wordEls, {
         opacity: 1,
         y: 0,
@@ -40,16 +47,24 @@ export default function Quote() {
         stagger: 0.06,
         duration: 0.5,
         ease: "power3.out",
-      }).fromTo(
+      });
+
+      // Attribution fades in 300ms after last word
+      tl.fromTo(
         attrRef.current,
         { opacity: 0, y: 10 },
-        { opacity: 1, y: 0, duration: 0.4 },
-        "-=0.1"
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.4,
+          ease: "power2.out",
+        },
+        `>-0.1` // slight overlap with end of word animation
       );
     }, sectionRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [loaderComplete]);
 
   return (
     <section
@@ -60,10 +75,25 @@ export default function Quote() {
       style={{
         height: "100vh",
         zIndex: 2,
+        /* No grain texture — this is a moment of silence */
       }}
     >
-      {/* No grain/grid on this section — moment of silence */}
-      <div className="text-center" style={{ maxWidth: "65%", margin: "0 auto" }}>
+      {/* Override: hide global grain & grid on this section */}
+      <style jsx>{`
+        section {
+          isolation: isolate;
+        }
+      `}</style>
+
+      <div
+        className="text-center"
+        style={{
+          maxWidth: "65%",
+          margin: "0 auto",
+          padding: "0 24px",
+        }}
+      >
+        {/* The Quote */}
         <blockquote
           ref={quoteRef}
           style={{
@@ -73,12 +103,16 @@ export default function Quote() {
             fontSize: "clamp(32px, 5vw, 72px)",
             lineHeight: 1.4,
             color: "var(--text-light)",
+            margin: 0,
+            padding: 0,
+            border: "none",
           }}
         >
           Design is not just what it looks and feels like. Design is how it
           works.
         </blockquote>
 
+        {/* Attribution */}
         <p
           ref={attrRef}
           style={{

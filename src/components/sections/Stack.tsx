@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { useLoader } from "@/contexts/LoaderContext";
 
 const SKILL_GROUPS = [
   {
@@ -28,12 +29,32 @@ const SKILL_GROUPS = [
 
 export default function Stack() {
   const sectionRef = useRef<HTMLElement>(null);
+  const labelRef = useRef<HTMLSpanElement>(null);
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const { loaderComplete } = useLoader();
 
   useEffect(() => {
-    if (!sectionRef.current) return;
+    if (!sectionRef.current || !loaderComplete) return;
 
     const ctx = gsap.context(() => {
+      // Section label
+      gsap.fromTo(
+        labelRef.current,
+        { opacity: 0, y: 15 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 70%",
+            toggleActions: "play none none reverse",
+          },
+        }
+      );
+
+      // Cards stagger in
       cardsRef.current.forEach((card, i) => {
         if (!card) return;
 
@@ -44,31 +65,32 @@ export default function Stack() {
             opacity: 1,
             y: 0,
             duration: 0.5,
-            delay: i * 0.1,
+            delay: i * 0.08,
             ease: "power2.out",
             scrollTrigger: {
               trigger: sectionRef.current,
-              start: "top 70%",
+              start: "top 65%",
               toggleActions: "play none none reverse",
             },
           }
         );
 
-        // Stagger pills inside each card
+        // Stagger pills inside each card after card appears
         const pills = card.querySelectorAll(".skill-pill");
         gsap.fromTo(
           pills,
-          { opacity: 0, y: 10 },
+          { opacity: 0, y: 8, scale: 0.95 },
           {
             opacity: 1,
             y: 0,
-            stagger: 0.04,
+            scale: 1,
+            stagger: 0.03,
             duration: 0.3,
-            delay: i * 0.1 + 0.2,
+            delay: i * 0.08 + 0.15,
             ease: "power2.out",
             scrollTrigger: {
               trigger: sectionRef.current,
-              start: "top 70%",
+              start: "top 65%",
               toggleActions: "play none none reverse",
             },
           }
@@ -77,7 +99,7 @@ export default function Stack() {
     }, sectionRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [loaderComplete]);
 
   return (
     <section
@@ -85,11 +107,12 @@ export default function Stack() {
       id="stack"
       data-section="stack"
       className="section section-light"
-      style={{ minHeight: "100vh", padding: "120px 0" }}
+      style={{ minHeight: "100vh", padding: "160px 0 120px" }}
     >
       <div className="section-content">
         {/* Section Label */}
         <span
+          ref={labelRef}
           style={{
             fontFamily: "var(--font-sans)",
             fontWeight: 400,
@@ -98,23 +121,27 @@ export default function Stack() {
             textTransform: "uppercase",
             color: "var(--text-muted)",
             display: "block",
-            marginBottom: "48px",
+            marginBottom: "56px",
+            opacity: 0,
           }}
         >
           03 — Stack
         </span>
 
-        {/* Skill Groups Grid */}
+        {/* Skill Groups Grid — 3 columns desktop, 2 tablet, 1 mobile */}
         <div
-          className="grid gap-12"
           style={{
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: "48px 40px",
           }}
         >
           {SKILL_GROUPS.map((group, i) => (
             <div
               key={group.label}
-              ref={(el) => { cardsRef.current[i] = el; }}
+              ref={(el) => {
+                cardsRef.current[i] = el;
+              }}
               style={{ opacity: 0 }}
             >
               {/* Group Label */}
@@ -134,7 +161,7 @@ export default function Stack() {
                 {group.label}
               </h3>
 
-              {/* Skills Pills */}
+              {/* Skill Pills */}
               <div className="flex flex-wrap gap-2">
                 {group.skills.map((skill) => (
                   <span
@@ -150,7 +177,7 @@ export default function Stack() {
                       backgroundColor: "transparent",
                       color: "var(--text-primary)",
                       transition:
-                        "background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease",
+                        "background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease",
                       display: "inline-block",
                       opacity: 0,
                     }}
@@ -159,12 +186,14 @@ export default function Stack() {
                       el.style.backgroundColor = "var(--bg-dark)";
                       el.style.color = "var(--text-light)";
                       el.style.borderColor = "var(--bg-dark)";
+                      el.style.transform = "translateY(-1px)";
                     }}
                     onMouseLeave={(e) => {
                       const el = e.currentTarget;
                       el.style.backgroundColor = "transparent";
                       el.style.color = "var(--text-primary)";
                       el.style.borderColor = "var(--grid-line)";
+                      el.style.transform = "translateY(0)";
                     }}
                   >
                     {skill}

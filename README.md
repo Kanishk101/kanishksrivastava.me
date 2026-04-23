@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# kanishksrivastava.me
 
-## Getting Started
+A brutalist-luxury personal portfolio built with Next.js 16, GSAP, Framer Motion, and Lenis smooth scroll.
 
-First, run the development server:
+## ✨ Features
+
+- **Cinematic Loader** — KS monogram, progress bar, vertical curtain-split reveal
+- **Perspective Hero** — Name erupts from flat/distant to full-size via scroll-driven transform
+- **Custom Cursor** — 5-state cursor system (default, hover, project view, magnetic, jitter)
+- **Magnetic Interactions** — Buttons and elements attract toward cursor
+- **Word-by-Word Reveals** — Pull quote and Steve Jobs quote animate word by word
+- **Project Case Studies** — Hover-preview list with full-screen slide-up modals
+- **Self-Drawing Timeline** — Experience spine draws itself on scroll
+- **Dark Section Inversion** — Nav automatically inverts on dark sections
+- **Noise Grain Overlay** — SVG feTurbulence for tactile depth
+- **Smooth Scroll** — Lenis with GSAP ticker sync (desktop only)
+
+## 🛠 Tech Stack
+
+| Layer | Tech |
+|-------|------|
+| Framework | Next.js 16 (App Router, TypeScript) |
+| Animation | GSAP + ScrollTrigger |
+| Transitions | Framer Motion |
+| Scroll | Lenis |
+| Styling | Tailwind CSS v4 + CSS Custom Properties |
+| Fonts | Cormorant Garamond · Syne · Outfit (via next/font) |
+| Icons | Inline SVGs + Lucide React |
+
+## 🚀 Getting Started
 
 ```bash
+# Clone the repo
+git clone https://github.com/yourusername/kanishksrivastava.me.git
+cd kanishksrivastava.me
+
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📝 Updating Content
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+All content is stored as data arrays in component files. To update:
 
-## Learn More
+| Content | File |
+|---------|------|
+| Name, role, manifesto | `src/components/sections/Hero.tsx` |
+| About bio, pull quote | `src/components/sections/About.tsx` |
+| Projects list | `src/components/sections/Work.tsx` |
+| Skills/Stack | `src/components/sections/Stack.tsx` |
+| Experience timeline | `src/components/sections/Experience.tsx` |
+| Social links, email | `src/components/sections/Contact.tsx` |
+| Monogram initials | `src/components/Loader/Loader.tsx` + `Nav.tsx` |
+| SEO metadata | `src/app/layout.tsx` |
 
-To learn more about Next.js, take a look at the following resources:
+## 🎨 Design System
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Tokens are defined in `src/styles/tokens.css`:
+- **Colors**: `--bg-primary: #F9F7F4`, `--bg-dark: #0C0C0B`, `--accent: #C4B9AE`
+- **Typography**: Display (Cormorant), Sans (Syne), Body (Outfit)
+- **Spacing**: 4px → 128px scale
+- **Animation**: Duration + easing tokens
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📦 Build & Deploy
 
-## Deploy on Vercel
+```bash
+# Production build
+npm run build
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Deploy to Vercel
+vercel deploy --prod
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Or push to GitHub — auto-deploys on Vercel if connected.
+
+## 📄 License
+
+MIT

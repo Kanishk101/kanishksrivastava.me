@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { useLoader } from "@/contexts/LoaderContext";
 import { Mail } from "lucide-react";
 
 /* Inline SVG icons for brands (lucide-react removed brand icons) */
@@ -27,67 +28,140 @@ const SOCIAL_LINKS = [
   { label: "GitHub", icon: GithubIcon, href: "https://github.com/" },
   { label: "LinkedIn", icon: LinkedinIcon, href: "https://linkedin.com/in/" },
   { label: "Twitter/X", icon: XIcon, href: "https://x.com/" },
-  { label: "Email", icon: Mail, href: "mailto:hello@example.com" },
+  { label: "Email", icon: Mail, href: "mailto:hello@kanishksrivastava.me" },
 ];
 
 export default function Contact() {
   const sectionRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLAnchorElement>(null);
+  const socialsRef = useRef<HTMLDivElement>(null);
+  const { loaderComplete } = useLoader();
 
   useEffect(() => {
-    if (!sectionRef.current || !headingRef.current) return;
+    if (!sectionRef.current || !headingRef.current || !loaderComplete) return;
 
     const ctx = gsap.context(() => {
-      // Character-by-character heading reveal
+      // ═══════════════════════════════════════════════
+      // CHARACTER-BY-CHARACTER HEADING REVEAL
+      // ═══════════════════════════════════════════════
       const heading = headingRef.current!;
       const text = heading.textContent || "";
       heading.innerHTML = text
         .split("")
         .map(
           (char) =>
-            `<span style="display:inline-block;opacity:0;transform:translateY(10px);">${
+            `<span class="contact-char" style="display:inline-block;opacity:0;transform:translateY(10px);">${
               char === " " ? "&nbsp;" : char
             }</span>`
         )
         .join("");
 
-      const chars = heading.querySelectorAll("span");
+      const chars = heading.querySelectorAll(".contact-char");
 
-      gsap.to(chars, {
-        opacity: 1,
-        y: 0,
-        stagger: 0.03,
-        duration: 0.4,
-        ease: "power2.out",
+      const tl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 60%",
+          start: "top 55%",
           toggleActions: "play none none reverse",
         },
       });
 
-      // Content fades in after heading
-      gsap.fromTo(
-        contentRef.current,
-        { opacity: 0, y: 20 },
+      // Badge
+      tl.fromTo(
+        badgeRef.current,
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
+        0
+      );
+
+      // Characters
+      tl.to(
+        chars,
         {
           opacity: 1,
           y: 0,
-          duration: 0.6,
-          delay: 0.5,
+          stagger: 0.02,
+          duration: 0.35,
           ease: "power2.out",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 60%",
-            toggleActions: "play none none reverse",
-          },
-        }
+        },
+        0.2
       );
+
+      // Content fades in after heading
+      tl.fromTo(
+        contentRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+        ">-0.3"
+      );
+
+      // Social links stagger
+      if (socialsRef.current) {
+        const links = socialsRef.current.querySelectorAll(".social-link");
+        tl.fromTo(
+          links,
+          { opacity: 0, y: 10 },
+          {
+            opacity: 1,
+            y: 0,
+            stagger: 0.06,
+            duration: 0.3,
+            ease: "power2.out",
+          },
+          ">-0.2"
+        );
+      }
     }, sectionRef);
 
+    // ═══════════════════════════════════════════════
+    // MAGNETIC CTA BUTTON
+    // ═══════════════════════════════════════════════
+    const cta = ctaRef.current;
+    if (cta && window.matchMedia("(pointer: fine)").matches) {
+      const handleMove = (e: MouseEvent) => {
+        const rect = cta.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = e.clientX - cx;
+        const dy = e.clientY - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxDist = 120;
+
+        if (dist < maxDist) {
+          const strength = (1 - dist / maxDist) * 0.35;
+          gsap.to(cta, {
+            x: dx * strength,
+            y: dy * strength,
+            duration: 0.3,
+            ease: "power2.out",
+          });
+        }
+      };
+
+      const handleLeave = () => {
+        gsap.to(cta, {
+          x: 0,
+          y: 0,
+          duration: 0.5,
+          ease: "elastic.out(1, 0.3)",
+        });
+      };
+
+      cta.addEventListener("mousemove", handleMove);
+      cta.addEventListener("mouseleave", handleLeave);
+
+      return () => {
+        ctx.revert();
+        cta.removeEventListener("mousemove", handleMove);
+        cta.removeEventListener("mouseleave", handleLeave);
+      };
+    }
+
     return () => ctx.revert();
-  }, []);
+  }, [loaderComplete]);
 
   return (
     <section
@@ -99,23 +173,25 @@ export default function Contact() {
     >
       {/* Availability Badge */}
       <div
+        ref={badgeRef}
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "8px",
+          gap: "10px",
           border: "1px solid var(--bg-dark-subtle)",
           borderRadius: "100px",
           padding: "6px 16px",
           marginBottom: "48px",
+          opacity: 0,
         }}
       >
         <span
+          className="availability-dot"
           style={{
             width: "6px",
             height: "6px",
             borderRadius: "50%",
             backgroundColor: "#4ade80",
-            animation: "pulse 2s infinite",
           }}
         />
         <span
@@ -131,7 +207,7 @@ export default function Contact() {
         </span>
       </div>
 
-      {/* Main Heading */}
+      {/* Main Heading — char-by-char reveal */}
       <h2
         ref={headingRef}
         style={{
@@ -142,6 +218,8 @@ export default function Contact() {
           textAlign: "center",
           lineHeight: 1.1,
           maxWidth: "900px",
+          overflowWrap: "normal",
+          wordBreak: "keep-all",
         }}
       >
         Let&apos;s build something remarkable.
@@ -167,8 +245,9 @@ export default function Contact() {
           Currently open to full-time roles and select freelance projects.
         </p>
 
-        {/* Email CTA */}
+        {/* Email CTA — magnetic effect */}
         <a
+          ref={ctaRef}
           href="mailto:hello@kanishksrivastava.me"
           data-magnetic
           style={{
@@ -184,6 +263,7 @@ export default function Contact() {
               "background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease",
             backgroundImage: "none",
             display: "inline-block",
+            willChange: "transform",
           }}
           onMouseEnter={(e) => {
             const el = e.currentTarget;
@@ -203,6 +283,7 @@ export default function Contact() {
 
         {/* Social Links */}
         <div
+          ref={socialsRef}
           className="flex items-center flex-wrap justify-center"
           style={{ gap: "40px", marginTop: "48px" }}
         >
@@ -212,11 +293,12 @@ export default function Contact() {
               href={link.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 group"
+              className="social-link flex items-center gap-2"
               style={{
                 color: "var(--text-secondary)",
                 transition: "color 0.2s ease",
                 backgroundImage: "none",
+                opacity: 0,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "var(--text-light)";
@@ -271,14 +353,20 @@ export default function Contact() {
         </span>
       </div>
 
+      {/* Availability dot pulse animation */}
       <style jsx>{`
-        @keyframes pulse {
+        .availability-dot {
+          animation: dotPulse 2s infinite;
+        }
+        @keyframes dotPulse {
           0%,
           100% {
             opacity: 1;
+            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4);
           }
           50% {
-            opacity: 0.4;
+            opacity: 0.7;
+            box-shadow: 0 0 0 4px rgba(74, 222, 128, 0);
           }
         }
       `}</style>

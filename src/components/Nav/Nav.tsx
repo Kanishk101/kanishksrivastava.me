@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { useLoader } from "@/contexts/LoaderContext";
 
 const NAV_LINKS = [
   { label: "About", href: "#about" },
@@ -17,38 +17,36 @@ export default function Nav() {
   const [isDark, setIsDark] = useState(false);
   const [activeSection, setActiveSection] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { loaderComplete } = useLoader();
 
   useEffect(() => {
+    if (!loaderComplete) return;
+
     // Scroll background transition
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll(); // Initial check
 
     // Dark section detection via IntersectionObserver
     const darkSections = document.querySelectorAll(".section-dark");
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsDark(true);
-          } else {
-            // Check if any dark section is still intersecting
-            const anyDark = Array.from(darkSections).some((section) => {
-              const rect = section.getBoundingClientRect();
-              return rect.top < 80 && rect.bottom > 80;
-            });
-            setIsDark(anyDark);
-          }
+    const darkObserver = new IntersectionObserver(
+      () => {
+        // Check if any dark section is at the nav position
+        const anyDark = Array.from(darkSections).some((section) => {
+          const rect = section.getBoundingClientRect();
+          return rect.top < 80 && rect.bottom > 80;
         });
+        setIsDark(anyDark);
       },
       {
-        rootMargin: "-70px 0px -90% 0px",
-        threshold: 0,
+        rootMargin: "-1px 0px -90% 0px",
+        threshold: [0, 0.1],
       }
     );
 
-    darkSections.forEach((section) => observer.observe(section));
+    darkSections.forEach((section) => darkObserver.observe(section));
 
     // Active section detection
     const sections = document.querySelectorAll("[data-section]");
@@ -69,12 +67,22 @@ export default function Nav() {
 
     sections.forEach((section) => sectionObserver.observe(section));
 
+    // Periodic dark check for smoother transitions
+    const intervalId = setInterval(() => {
+      const anyDark = Array.from(darkSections).some((section) => {
+        const rect = section.getBoundingClientRect();
+        return rect.top < 80 && rect.bottom > 80;
+      });
+      setIsDark(anyDark);
+    }, 200);
+
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      observer.disconnect();
+      darkObserver.disconnect();
       sectionObserver.disconnect();
+      clearInterval(intervalId);
     };
-  }, []);
+  }, [loaderComplete]);
 
   const handleNavClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
@@ -88,11 +96,14 @@ export default function Nav() {
     setMobileOpen(false);
   };
 
+  // Hide nav during loader
+  if (!loaderComplete) return null;
+
   return (
     <>
       <nav
         ref={navRef}
-        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+        className="fixed top-0 left-0 right-0 z-50"
         style={{
           padding: "24px 48px",
           backgroundColor: scrolled
@@ -102,22 +113,25 @@ export default function Nav() {
             : "transparent",
           backdropFilter: scrolled ? "blur(12px)" : "none",
           WebkitBackdropFilter: scrolled ? "blur(12px)" : "none",
+          transition:
+            "background-color 0.4s ease, backdrop-filter 0.4s ease",
         }}
       >
         <div className="flex items-center justify-between max-w-[1440px] mx-auto">
           {/* Monogram */}
           <a
-            href="#"
+            href="#hero"
             onClick={(e) => handleNavClick(e, "#hero")}
-            className="font-display text-xl tracking-wide"
+            data-magnetic
             style={{
               fontFamily: "var(--font-display)",
               fontWeight: 300,
               fontSize: "20px",
               color: isDark ? "var(--text-light)" : "var(--text-primary)",
               backgroundImage: "none",
+              transition: "color 0.4s ease",
+              letterSpacing: "0.1em",
             }}
-            data-magnetic
           >
             KS
           </a>
@@ -136,9 +150,15 @@ export default function Nav() {
                   fontSize: "11px",
                   letterSpacing: "0.3em",
                   textTransform: "uppercase",
-                  color: isDark ? "var(--text-secondary)" : "var(--text-secondary)",
+                  color:
+                    activeSection === link.href.slice(1)
+                      ? isDark
+                        ? "var(--text-light)"
+                        : "var(--text-primary)"
+                      : "var(--text-secondary)",
                   backgroundImage: "none",
                   transition: "color 0.3s ease",
+                  padding: "4px 0",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = isDark
@@ -146,7 +166,9 @@ export default function Nav() {
                     : "var(--text-primary)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--text-secondary)";
+                  if (activeSection !== link.href.slice(1)) {
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                  }
                 }}
               >
                 {link.label}
@@ -155,11 +177,12 @@ export default function Nav() {
                   <span
                     className="absolute left-1/2 -translate-x-1/2"
                     style={{
-                      bottom: "-8px",
+                      bottom: "-6px",
                       width: "4px",
                       height: "4px",
                       borderRadius: "50%",
                       backgroundColor: "var(--accent)",
+                      display: "block",
                     }}
                   />
                 )}
@@ -172,83 +195,62 @@ export default function Nav() {
             className="md:hidden flex flex-col gap-[5px] bg-transparent border-none p-2"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
+            style={{ position: "relative", zIndex: 60 }}
           >
-            <span
-              className="block w-5 h-[1.5px] transition-all duration-300"
-              style={{
-                backgroundColor: isDark
-                  ? "var(--text-light)"
-                  : "var(--text-primary)",
-                transform: mobileOpen
-                  ? "rotate(45deg) translate(2px, 4px)"
-                  : "none",
-              }}
-            />
-            <span
-              className="block w-5 h-[1.5px] transition-all duration-300"
-              style={{
-                backgroundColor: isDark
-                  ? "var(--text-light)"
-                  : "var(--text-primary)",
-                opacity: mobileOpen ? 0 : 1,
-              }}
-            />
-            <span
-              className="block w-5 h-[1.5px] transition-all duration-300"
-              style={{
-                backgroundColor: isDark
-                  ? "var(--text-light)"
-                  : "var(--text-primary)",
-                transform: mobileOpen
-                  ? "rotate(-45deg) translate(2px, -4px)"
-                  : "none",
-              }}
-            />
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="block h-[1.5px] transition-all duration-300"
+                style={{
+                  width: "20px",
+                  backgroundColor:
+                    mobileOpen || isDark
+                      ? "var(--text-light)"
+                      : "var(--text-primary)",
+                  transform:
+                    mobileOpen && i === 0
+                      ? "rotate(45deg) translate(2px, 4.5px)"
+                      : mobileOpen && i === 2
+                        ? "rotate(-45deg) translate(2px, -4.5px)"
+                        : "none",
+                  opacity: mobileOpen && i === 1 ? 0 : 1,
+                }}
+              />
+            ))}
           </button>
         </div>
       </nav>
 
       {/* Mobile Menu Overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-8 md:hidden"
-          style={{
-            backgroundColor: "var(--bg-dark)",
-          }}
-        >
-          {NAV_LINKS.map((link, i) => (
-            <a
-              key={link.href}
-              href={link.href}
-              onClick={(e) => handleNavClick(e, link.href)}
-              style={{
-                fontFamily: "var(--font-display)",
-                fontWeight: 300,
-                fontSize: "48px",
-                color: "var(--text-light)",
-                backgroundImage: "none",
-                opacity: 0,
-                animation: `fadeInUp 0.4s ${i * 0.08}s forwards`,
-              }}
-            >
-              {link.label}
-            </a>
-          ))}
-        </div>
-      )}
-
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
+      <div
+        className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-8 md:hidden"
+        style={{
+          backgroundColor: "var(--bg-dark)",
+          opacity: mobileOpen ? 1 : 0,
+          pointerEvents: mobileOpen ? "auto" : "none",
+          transition: "opacity 0.4s ease",
+        }}
+      >
+        {NAV_LINKS.map((link, i) => (
+          <a
+            key={link.href}
+            href={link.href}
+            onClick={(e) => handleNavClick(e, link.href)}
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 300,
+              fontSize: "48px",
+              color: "var(--text-light)",
+              backgroundImage: "none",
+              opacity: mobileOpen ? 1 : 0,
+              transform: mobileOpen ? "translateY(0)" : "translateY(20px)",
+              transition: `opacity 0.4s ${i * 0.06}s ease, transform 0.4s ${i * 0.06}s ease`,
+            }}
+          >
+            {link.label}
+          </a>
+        ))}
+      </div>
     </>
   );
 }
