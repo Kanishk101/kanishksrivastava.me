@@ -134,7 +134,7 @@ export default function Stack() {
             marginBottom: "56px",
           }}
         >
-          03 — Stack
+          Stack
         </span>
 
         {/* Horizontal Strip */}

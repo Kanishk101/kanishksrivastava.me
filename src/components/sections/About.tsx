@@ -153,7 +153,7 @@ export default function About() {
                 opacity: 0,
               }}
             >
-              01 — About
+              About
             </span>
 
             <p

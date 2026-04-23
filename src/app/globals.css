@@ -39,6 +39,7 @@
 }
 
 html {
+  background-color: var(--bg-dark);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -46,7 +47,7 @@ html {
 }
 
 body {
-  background-color: var(--bg-primary);
+  background-color: var(--bg-dark);
   color: var(--text-primary);
   font-family: var(--font-body), system-ui, sans-serif;
   font-weight: 300;
@@ -274,4 +275,3 @@ a:hover {
 .marquee-track:hover {
   animation-play-state: paused;
 }
-

@@ -148,7 +148,7 @@ export default function Experience() {
             opacity: 0,
           }}
         >
-          04 — Experience
+          Experience
         </span>
 
         {/* Timeline Container */}

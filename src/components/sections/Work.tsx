@@ -84,49 +84,33 @@ export default function Work() {
   const [hoveredProject, setHoveredProject] = useState<string | null>(null);
   const [displayedProject, setDisplayedProject] = useState<string | null>(null);
   const hoverImageRef = useRef<HTMLDivElement>(null);
-  const hoverContentRef = useRef<HTMLSpanElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const mouseRef = useRef({ x: 0, y: 0 });
   const imgPosRef = useRef({ x: 0, y: 0 });
+  const [previewDirection, setPreviewDirection] = useState<1 | -1>(1);
   const { loaderComplete } = useLoader();
 
   const isPlaceholderHref = (href?: string) => !href || href === "#";
+  const projectOrder = PROJECTS.reduce<Record<string, number>>((acc, project, index) => {
+    acc[project.id] = index;
+    return acc;
+  }, {});
 
   const showHoveredProject = (projectId: string) => {
     if (hoveredProject === projectId && displayedProject === projectId) return;
 
+    if (displayedProject) {
+      setPreviewDirection(projectOrder[projectId] >= projectOrder[displayedProject] ? 1 : -1);
+    }
+
     setHoveredProject(projectId);
     setDisplayedProject(projectId);
-
-    if (hoverContentRef.current) {
-      gsap.killTweensOf(hoverContentRef.current);
-      gsap.fromTo(
-        hoverContentRef.current,
-        { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.28, ease: "power2.out" }
-      );
-    }
   };
 
   const hideHoveredProject = () => {
     setHoveredProject(null);
-
-    if (!hoverContentRef.current) {
-      setDisplayedProject(null);
-      return;
-    }
-
-    gsap.killTweensOf(hoverContentRef.current);
-    gsap.to(hoverContentRef.current, {
-      y: -14,
-      opacity: 0,
-      duration: 0.18,
-      ease: "power2.in",
-      overwrite: true,
-      onComplete: () => setDisplayedProject(null),
-    });
   };
 
   // ═══════════════════════════════════════════════
@@ -292,7 +276,7 @@ export default function Work() {
               marginBottom: "16px",
             }}
           >
-            02 — Work
+            Work
           </span>
           <hr
             style={{
@@ -313,6 +297,8 @@ export default function Work() {
                     rowsRef.current[i] = el;
                   }}
                   style={{ opacity: 0 }}
+                  onMouseEnter={() => showHoveredProject(project.id)}
+                  onMouseLeave={hideHoveredProject}
                 >
                   {/* Main Row */}
                   <button
@@ -329,8 +315,6 @@ export default function Work() {
                       position: "relative",
                       transition: "background-color 0.25s ease",
                     }}
-                    onMouseEnter={() => showHoveredProject(project.id)}
-                    onMouseLeave={hideHoveredProject}
                     onClick={() => setSelectedProject(project)}
                     data-cursor="pointer"
                     onKeyDown={(e) => {
@@ -429,8 +413,6 @@ export default function Work() {
                       alignItems: "center",
                       borderBottom: "1px solid var(--grid-line)",
                     }}
-                    onMouseEnter={() => showHoveredProject(project.id)}
-                    onMouseLeave={hideHoveredProject}
                     onClick={() => setSelectedProject(project)}
                   >
                     <div className="marquee-track">
@@ -456,40 +438,73 @@ export default function Work() {
         </div>
 
         {/* ═══ FLOATING HOVER IMAGE ═══ */}
-        <div
-          ref={hoverImageRef}
-          style={{
-            position: "fixed",
-            width: "200px",
-            height: "140px",
-            backgroundColor: "var(--bg-dark-elevated)",
-            transform: "rotate(-3deg)",
-            pointerEvents: "none",
-            zIndex: 60,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: hoveredProject ? 1 : 0,
-            scale: hoveredProject ? "1" : "0.8",
-            transition: "opacity 0.25s ease, scale 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-            boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)",
-            overflow: "hidden",
-          }}
-        >
-          <span
-            ref={hoverContentRef}
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "10px",
-              color: "var(--text-muted)",
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              willChange: "transform",
-            }}
-          >
-            {PROJECTS.find((p) => p.id === displayedProject)?.name || ""}
-          </span>
-        </div>
+        <AnimatePresence onExitComplete={() => setDisplayedProject(null)}>
+          {displayedProject && (
+            <motion.div
+              key="hover-preview"
+              ref={hoverImageRef}
+              initial={{ opacity: 0, scale: 0.82 }}
+              animate={{ opacity: hoveredProject ? 1 : 0, scale: hoveredProject ? 1 : 0.88 }}
+              exit={{ opacity: 0, scale: 0.82 }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                position: "fixed",
+                width: "200px",
+                height: "140px",
+                backgroundColor: "var(--bg-dark-elevated)",
+                transform: "rotate(-3deg)",
+                pointerEvents: "none",
+                zIndex: 60,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  position: "relative",
+                  width: "100%",
+                  height: "24px",
+                  overflow: "hidden",
+                }}
+              >
+                <AnimatePresence initial={false} custom={previewDirection} mode="sync">
+                  <motion.span
+                    key={displayedProject}
+                    custom={previewDirection}
+                    initial={(direction) => ({
+                      y: direction > 0 ? "110%" : "-110%",
+                      opacity: 0,
+                    })}
+                    animate={{ y: "0%", opacity: 1 }}
+                    exit={(direction) => ({
+                      y: direction > 0 ? "-110%" : "110%",
+                      opacity: 0,
+                    })}
+                    transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "10px",
+                      color: "var(--text-muted)",
+                      letterSpacing: "0.2em",
+                      textTransform: "uppercase",
+                      willChange: "transform",
+                    }}
+                  >
+                    {PROJECTS.find((project) => project.id === displayedProject)?.name || ""}
+                  </motion.span>
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* ═══════════════════════════════════════════════

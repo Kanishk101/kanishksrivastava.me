@@ -65,7 +65,7 @@ export default function Loader() {
             // Update percentage counter
             if (counterRef.current) {
               const progress = Math.round(this.progress() * 100);
-              counterRef.current.textContent = String(progress).padStart(3, "0");
+              counterRef.current.textContent = String(progress);
             }
           },
         },
@@ -208,7 +208,7 @@ export default function Loader() {
             marginTop: "16px",
           }}
         >
-          000
+          0
         </span>
       </div>
 

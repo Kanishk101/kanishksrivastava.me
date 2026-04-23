@@ -84,48 +84,109 @@ export default function Cursor() {
     if (!mounted) return;
 
     const handleClick = (e: MouseEvent) => {
-      // Detect light vs dark section for ripple visibility
       const elUnder = document.elementFromPoint(e.clientX, e.clientY);
       const isDark =
         elUnder?.closest(".section-dark") !== null ||
         elUnder?.closest("[data-modal-dark]") !== null;
-      const rippleColor = isDark
-        ? "rgba(196, 185, 174, 0.85)"   // accent on dark — visible
-        : "rgba(12, 12, 11, 0.45)";      // dark on light — visible
 
-      const waves = [
-        { size: 140, dur: 0.65, delay: 0, opacity: 0.55 },
-        { size: 260, dur: 0.8, delay: 0.06, opacity: 0.38 },
-        { size: 400, dur: 0.95, delay: 0.12, opacity: 0.22 },
-      ];
+      const waves = isDark
+        ? [
+            {
+              size: 150,
+              dur: 0.72,
+              delay: 0,
+              opacity: 0.92,
+              borderColor: "rgba(249, 247, 244, 0.92)",
+              glowColor: "rgba(249, 247, 244, 0.38)",
+              borderWidth: 1.8,
+            },
+            {
+              size: 280,
+              dur: 0.9,
+              delay: 0.05,
+              opacity: 0.72,
+              borderColor: "rgba(196, 185, 174, 0.95)",
+              glowColor: "rgba(196, 185, 174, 0.42)",
+              borderWidth: 1.5,
+            },
+            {
+              size: 440,
+              dur: 1.08,
+              delay: 0.1,
+              opacity: 0.52,
+              borderColor: "rgba(249, 247, 244, 0.78)",
+              glowColor: "rgba(249, 247, 244, 0.2)",
+              borderWidth: 1.2,
+            },
+          ]
+        : [
+            {
+              size: 150,
+              dur: 0.72,
+              delay: 0,
+              opacity: 0.88,
+              borderColor: "rgba(12, 12, 11, 0.88)",
+              glowColor: "rgba(12, 12, 11, 0.22)",
+              borderWidth: 1.8,
+            },
+            {
+              size: 280,
+              dur: 0.9,
+              delay: 0.05,
+              opacity: 0.7,
+              borderColor: "rgba(116, 108, 98, 0.78)",
+              glowColor: "rgba(116, 108, 98, 0.2)",
+              borderWidth: 1.45,
+            },
+            {
+              size: 440,
+              dur: 1.08,
+              delay: 0.1,
+              opacity: 0.46,
+              borderColor: "rgba(12, 12, 11, 0.62)",
+              glowColor: "rgba(12, 12, 11, 0.12)",
+              borderWidth: 1.15,
+            },
+          ];
 
-      waves.forEach(({ size, dur, delay, opacity }) => {
-        const wave = document.createElement("div");
-        wave.style.cssText = `
-          position: fixed;
-          left: ${e.clientX}px;
-          top: ${e.clientY}px;
-          width: 0px;
-          height: 0px;
-          border-radius: 50%;
-          border: 1px solid ${rippleColor};
-          pointer-events: none;
-          z-index: 9997;
-          transform: translate(-50%, -50%);
-          opacity: ${opacity};
-        `;
-        document.body.appendChild(wave);
-
-        gsap.to(wave, {
-          width: size,
-          height: size,
-          opacity: 0,
-          duration: dur,
+      waves.forEach(
+        ({
+          size,
+          dur,
           delay,
-          ease: "power3.out",
-          onComplete: () => wave.remove(),
-        });
-      });
+          opacity,
+          borderColor,
+          glowColor,
+          borderWidth,
+        }) => {
+          const wave = document.createElement("div");
+          wave.style.cssText = `
+            position: fixed;
+            left: ${e.clientX}px;
+            top: ${e.clientY}px;
+            width: 0px;
+            height: 0px;
+            border-radius: 50%;
+            border: ${borderWidth}px solid ${borderColor};
+            box-shadow: 0 0 0 1px ${glowColor}, 0 0 28px ${glowColor};
+            pointer-events: none;
+            z-index: 9997;
+            transform: translate(-50%, -50%);
+            opacity: ${opacity};
+          `;
+          document.body.appendChild(wave);
+
+          gsap.to(wave, {
+            width: size,
+            height: size,
+            opacity: 0,
+            duration: dur,
+            delay,
+            ease: "power3.out",
+            onComplete: () => wave.remove(),
+          });
+        }
+      );
 
       // Subtle dot squeeze
       if (cursorRef.current) {

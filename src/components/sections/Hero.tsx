@@ -99,12 +99,12 @@ export default function Hero() {
         0
       );
 
-      // Role line fades in at 45% — name is nearly full size
+      // Role line settles earlier so it can live on screen longer
       perspectiveTl.fromTo(
         roleRef.current,
         { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.1, ease: "power2.out" },
-        0.45
+        { opacity: 1, y: 0, duration: 0.08, ease: "power2.out" },
+        0.3
       );
 
       // Scroll indicator fades out early
@@ -169,7 +169,7 @@ export default function Hero() {
       data-section="hero"
       className="section section-light relative"
       style={{
-        height: "1400vh",
+        height: "1800vh",
       }}
     >
       {/* Pinned content container */}
