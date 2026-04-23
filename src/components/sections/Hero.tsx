@@ -1,26 +1,31 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { gsap } from "@/lib/gsap";
 import { useLoader } from "@/contexts/LoaderContext";
 
 export default function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
   const pinContainerRef = useRef<HTMLDivElement>(null);
   const nameContainerRef = useRef<HTMLDivElement>(null);
+  const roleRef = useRef<HTMLParagraphElement>(null);
   const scrollIndicatorRef = useRef<HTMLDivElement>(null);
-  const charsRef = useRef<HTMLSpanElement[]>([]);
+  const charsRef = useRef<(HTMLSpanElement | null)[]>([]);
   const mouseRef = useRef({ x: 0, y: 0 });
   const rafRef = useRef<number>(0);
   const { loaderComplete } = useLoader();
 
   // Split name into individually-addressable characters
-  const renderNameChars = useCallback((text: string, lineClass: string) => {
+  const renderNameChars = useCallback((
+    text: string,
+    lineClass: string,
+    startIndex: number
+  ) => {
     return text.split("").map((char, i) => (
       <span
         key={`${lineClass}-${i}`}
         ref={(el) => {
-          if (el) charsRef.current.push(el);
+          charsRef.current[startIndex + i] = el;
         }}
         className="hero-char"
         style={{
@@ -94,6 +99,14 @@ export default function Hero() {
         0
       );
 
+      // Role line fades in at 45% — name is nearly full size
+      perspectiveTl.fromTo(
+        roleRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.1, ease: "power2.out" },
+        0.45
+      );
+
       // Scroll indicator fades out early
       perspectiveTl.to(
         scrollIndicatorRef.current,
@@ -149,8 +162,6 @@ export default function Hero() {
     };
   }, [loaderComplete]);
 
-  charsRef.current = [];
-
   return (
     <section
       ref={sectionRef}
@@ -158,7 +169,7 @@ export default function Hero() {
       data-section="hero"
       className="section section-light relative"
       style={{
-        height: "800vh",
+        height: "1400vh",
       }}
     >
       {/* Pinned content container */}
@@ -195,12 +206,32 @@ export default function Hero() {
               padding: 0,
             }}
           >
-            <span className="block">{renderNameChars("Kanishk", "line1")}</span>
+            <span className="block">
+              {renderNameChars("Kanishk", "line1", 0)}
+            </span>
             <span className="block" style={{ marginTop: "0.05em" }}>
-              {renderNameChars("Srivastava", "line2")}
+              {renderNameChars("Srivastava", "line2", 7)}
             </span>
           </h1>
         </div>
+
+        {/* Role line — appears after scroll */}
+        <p
+          ref={roleRef}
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontWeight: 400,
+            fontSize: "11px",
+            letterSpacing: "0.3em",
+            textTransform: "uppercase",
+            color: "var(--text-secondary)",
+            marginTop: "32px",
+            opacity: 0,
+            textAlign: "center",
+          }}
+        >
+          Full-Stack Engineer · iOS Developer · Creative Technologist
+        </p>
 
         {/* Scroll Indicator */}
         <div

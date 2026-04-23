@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useLoader } from "@/contexts/LoaderContext";
 
 const NAV_LINKS = [
@@ -18,28 +18,30 @@ export default function Nav() {
   const [activeSection, setActiveSection] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const { loaderComplete } = useLoader();
+  const mobileMenuId = useId();
 
   useEffect(() => {
     if (!loaderComplete) return;
 
+    const darkSections = document.querySelectorAll<HTMLElement>(".section-dark");
+
+    const getNavDarkState = () =>
+      Array.from(darkSections).some((section) => {
+        const rect = section.getBoundingClientRect();
+        return rect.top < 80 && rect.bottom > 80;
+      });
+
     // Scroll background transition
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
+      setIsDark(getNavDarkState());
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll(); // Initial check
 
     // Dark section detection via IntersectionObserver
-    const darkSections = document.querySelectorAll(".section-dark");
     const darkObserver = new IntersectionObserver(
-      () => {
-        // Check if any dark section is at the nav position
-        const anyDark = Array.from(darkSections).some((section) => {
-          const rect = section.getBoundingClientRect();
-          return rect.top < 80 && rect.bottom > 80;
-        });
-        setIsDark(anyDark);
-      },
+      () => setIsDark(getNavDarkState()),
       {
         rootMargin: "-1px 0px -90% 0px",
         threshold: [0, 0.1],
@@ -67,20 +69,10 @@ export default function Nav() {
 
     sections.forEach((section) => sectionObserver.observe(section));
 
-    // Periodic dark check for smoother transitions
-    const intervalId = setInterval(() => {
-      const anyDark = Array.from(darkSections).some((section) => {
-        const rect = section.getBoundingClientRect();
-        return rect.top < 80 && rect.bottom > 80;
-      });
-      setIsDark(anyDark);
-    }, 200);
-
     return () => {
       window.removeEventListener("scroll", handleScroll);
       darkObserver.disconnect();
       sectionObserver.disconnect();
-      clearInterval(intervalId);
     };
   }, [loaderComplete]);
 
@@ -195,6 +187,8 @@ export default function Nav() {
             className="md:hidden flex flex-col gap-[5px] bg-transparent border-none p-2"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
+            aria-controls={mobileMenuId}
             style={{ position: "relative", zIndex: 60 }}
           >
             {[0, 1, 2].map((i) => (
@@ -223,6 +217,7 @@ export default function Nav() {
 
       {/* Mobile Menu Overlay */}
       <div
+        id={mobileMenuId}
         className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-8 md:hidden"
         style={{
           backgroundColor: "var(--bg-dark)",

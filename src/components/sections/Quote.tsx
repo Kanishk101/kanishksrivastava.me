@@ -1,35 +1,25 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { gsap } from "@/lib/gsap";
 import { useLoader } from "@/contexts/LoaderContext";
+
+const QUOTE_TEXT =
+  "Design is not just what it looks and feels like. Design is how it works.";
+const QUOTE_WORDS = QUOTE_TEXT.split(" ");
 
 export default function Quote() {
   const sectionRef = useRef<HTMLElement>(null);
   const quoteRef = useRef<HTMLQuoteElement>(null);
   const attrRef = useRef<HTMLParagraphElement>(null);
+  const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const { loaderComplete } = useLoader();
 
   useEffect(() => {
     if (!sectionRef.current || !quoteRef.current || !loaderComplete) return;
 
     const ctx = gsap.context(() => {
-      // ═══════════════════════════════════════════════
-      // WORD-BY-WORD REVEAL — feels like the quote
-      // is being spoken, words arrive with weight
-      // ═══════════════════════════════════════════════
-      const quoteEl = quoteRef.current!;
-      const text = quoteEl.textContent || "";
-      const words = text.split(" ");
-
-      quoteEl.innerHTML = words
-        .map(
-          (word) =>
-            `<span class="quote-word" style="display:inline-block;opacity:0;transform:translateY(20px) scale(0.95);">${word}&nbsp;</span>`
-        )
-        .join("");
-
-      const wordEls = quoteEl.querySelectorAll(".quote-word");
+      const wordEls = wordRefs.current.filter(Boolean);
 
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -49,17 +39,17 @@ export default function Quote() {
         ease: "power3.out",
       });
 
-      // Attribution fades in 300ms after last word
+      // Attribution fades in while last few words are still animating (not after)
       tl.fromTo(
         attrRef.current,
-        { opacity: 0, y: 10 },
+        { opacity: 0, y: 8 },
         {
           opacity: 1,
           y: 0,
-          duration: 0.4,
+          duration: 0.5,
           ease: "power2.out",
         },
-        `>-0.1` // slight overlap with end of word animation
+        `-=${(wordEls.length * 0.06 * 0.4).toFixed(2)}` // starts 40% before last word finishes
       );
     }, sectionRef);
 
@@ -77,21 +67,6 @@ export default function Quote() {
         zIndex: 2,
       }}
     >
-      {/*
-        Grain suppression: a solid cover div that sits above the
-        body::before grain overlay (z-index 9990). This blocks the
-        grain from showing through on this dark section.
-      */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundColor: "var(--bg-dark)",
-          zIndex: 9991,
-          pointerEvents: "none",
-        }}
-      />
-
       <div
         className="text-center"
         style={{
@@ -99,7 +74,7 @@ export default function Quote() {
           margin: "0 auto",
           padding: "0 24px",
           position: "relative",
-          zIndex: 9992,
+          zIndex: 2,
         }}
       >
         {/* The Quote */}
@@ -117,8 +92,23 @@ export default function Quote() {
             border: "none",
           }}
         >
-          Design is not just what it looks and feels like. Design is how it
-          works.
+          {QUOTE_WORDS.map((word, index) => (
+            <span
+              key={`${word}-${index}`}
+              ref={(el) => {
+                wordRefs.current[index] = el;
+              }}
+              className="quote-word"
+              style={{
+                display: "inline-block",
+                opacity: 0,
+                transform: "translateY(20px) scale(0.95)",
+              }}
+            >
+              {word}
+              {index < QUOTE_WORDS.length - 1 ? "\u00A0" : ""}
+            </span>
+          ))}
         </blockquote>
 
         {/* Attribution */}
@@ -135,7 +125,7 @@ export default function Quote() {
             opacity: 0,
           }}
         >
-          {"\u2014 Steve Jobs"}
+          {"— Steve Jobs"}
         </p>
       </div>
     </section>

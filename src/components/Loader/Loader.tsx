@@ -17,13 +17,16 @@ export default function Loader() {
   const [shouldRender, setShouldRender] = useState(true);
 
   useEffect(() => {
-    // sessionStorage check: only show on first visit per session
+    let skipFrame = 0;
+
     if (typeof window !== "undefined") {
       const alreadyShown = sessionStorage.getItem("loaderShown");
       if (alreadyShown) {
-        setVisible(false);
-        setShouldRender(false);
-        setLoaderComplete();
+        skipFrame = window.requestAnimationFrame(() => {
+          setVisible(false);
+          setShouldRender(false);
+          setLoaderComplete();
+        });
         return;
       }
     }
@@ -105,7 +108,12 @@ export default function Loader() {
       );
     }, loaderRef);
 
-    return () => ctx.revert();
+    return () => {
+      if (skipFrame) {
+        window.cancelAnimationFrame(skipFrame);
+      }
+      ctx.revert();
+    };
   }, [setLoaderComplete]);
 
   if (!shouldRender) return null;

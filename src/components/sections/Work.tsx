@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { gsap } from "@/lib/gsap";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLoader } from "@/contexts/LoaderContext";
 
@@ -82,12 +82,52 @@ export default function Work() {
   const rowsRef = useRef<(HTMLDivElement | null)[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [hoveredProject, setHoveredProject] = useState<string | null>(null);
+  const [displayedProject, setDisplayedProject] = useState<string | null>(null);
   const hoverImageRef = useRef<HTMLDivElement>(null);
   const hoverContentRef = useRef<HTMLSpanElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const mouseRef = useRef({ x: 0, y: 0 });
   const imgPosRef = useRef({ x: 0, y: 0 });
-  const lastMouseYRef = useRef(0);
   const { loaderComplete } = useLoader();
+
+  const isPlaceholderHref = (href?: string) => !href || href === "#";
+
+  const showHoveredProject = (projectId: string) => {
+    if (hoveredProject === projectId && displayedProject === projectId) return;
+
+    setHoveredProject(projectId);
+    setDisplayedProject(projectId);
+
+    if (hoverContentRef.current) {
+      gsap.killTweensOf(hoverContentRef.current);
+      gsap.fromTo(
+        hoverContentRef.current,
+        { y: 16, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.28, ease: "power2.out" }
+      );
+    }
+  };
+
+  const hideHoveredProject = () => {
+    setHoveredProject(null);
+
+    if (!hoverContentRef.current) {
+      setDisplayedProject(null);
+      return;
+    }
+
+    gsap.killTweensOf(hoverContentRef.current);
+    gsap.to(hoverContentRef.current, {
+      y: -14,
+      opacity: 0,
+      duration: 0.18,
+      ease: "power2.in",
+      overwrite: true,
+      onComplete: () => setDisplayedProject(null),
+    });
+  };
 
   // ═══════════════════════════════════════════════
   // FLOATING HOVER IMAGE — follows cursor with lerp
@@ -95,26 +135,6 @@ export default function Work() {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current = { x: e.clientX + 20, y: e.clientY - 70 };
-
-      // Track vertical direction for content slide animation
-      const dy = e.clientY - lastMouseYRef.current;
-      lastMouseYRef.current = e.clientY;
-
-      if (hoverContentRef.current && Math.abs(dy) > 1) {
-        // Slide content in the direction of mouse movement
-        gsap.to(hoverContentRef.current, {
-          y: dy > 0 ? 6 : -6,
-          duration: 0.2,
-          ease: "power2.out",
-          overwrite: true,
-        });
-        gsap.to(hoverContentRef.current, {
-          y: 0,
-          duration: 0.4,
-          delay: 0.15,
-          ease: "power2.out",
-        });
-      }
     };
 
     const lerpImage = () => {
@@ -196,6 +216,48 @@ export default function Work() {
     };
   }, [selectedProject]);
 
+  useEffect(() => {
+    if (!selectedProject || !modalRef.current) return;
+
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+
+    const modal = modalRef.current;
+    const focusFirst = () => {
+      closeButtonRef.current?.focus();
+    };
+
+    const animationFrame = requestAnimationFrame(focusFirst);
+
+    const handleTabTrap = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+
+      const focusable = modal.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      const focusableEls = Array.from(focusable);
+      if (focusableEls.length === 0) return;
+
+      const first = focusableEls[0];
+      const last = focusableEls[focusableEls.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleTabTrap);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("keydown", handleTabTrap);
+      previouslyFocusedRef.current?.focus();
+    };
+  }, [selectedProject]);
+
   // ═══════════════════════════════════════════════
   // ESCAPE KEY to close modal
   // ═══════════════════════════════════════════════
@@ -253,8 +315,9 @@ export default function Work() {
                   style={{ opacity: 0 }}
                 >
                   {/* Main Row */}
-                  <div
-                    className="project-row"
+                  <button
+                    type="button"
+                    className="project-row w-full text-left"
                     style={{
                       display: "grid",
                       gridTemplateColumns: "48px 1fr auto auto",
@@ -266,14 +329,15 @@ export default function Work() {
                       position: "relative",
                       transition: "background-color 0.25s ease",
                     }}
-                    onMouseEnter={() => setHoveredProject(project.id)}
-                    onMouseLeave={() => setHoveredProject(null)}
+                    onMouseEnter={() => showHoveredProject(project.id)}
+                    onMouseLeave={hideHoveredProject}
                     onClick={() => setSelectedProject(project)}
                     data-cursor="pointer"
-                    role="button"
-                    tabIndex={0}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") setSelectedProject(project);
+                      if (e.key === " " || e.key === "Enter") {
+                        e.preventDefault();
+                        setSelectedProject(project);
+                      }
                     }}
                     onMouseOver={(e) => {
                       e.currentTarget.style.backgroundColor =
@@ -282,6 +346,7 @@ export default function Work() {
                     onMouseOut={(e) => {
                       e.currentTarget.style.backgroundColor = "transparent";
                     }}
+                    aria-label={`Open ${project.name} case study`}
                   >
                     {/* Index */}
                     <span
@@ -351,7 +416,7 @@ export default function Work() {
                     >
                       {project.year}
                     </span>
-                  </div>
+                  </button>
 
                   {/* ═══ MARQUEE BAND — slides open on hover ═══ */}
                   <div
@@ -364,8 +429,8 @@ export default function Work() {
                       alignItems: "center",
                       borderBottom: "1px solid var(--grid-line)",
                     }}
-                    onMouseEnter={() => setHoveredProject(project.id)}
-                    onMouseLeave={() => setHoveredProject(null)}
+                    onMouseEnter={() => showHoveredProject(project.id)}
+                    onMouseLeave={hideHoveredProject}
                     onClick={() => setSelectedProject(project)}
                   >
                     <div className="marquee-track">
@@ -422,7 +487,7 @@ export default function Work() {
               willChange: "transform",
             }}
           >
-            {PROJECTS.find((p) => p.id === hoveredProject)?.name || ""}
+            {PROJECTS.find((p) => p.id === displayedProject)?.name || ""}
           </span>
         </div>
       </section>
@@ -433,11 +498,16 @@ export default function Work() {
       <AnimatePresence>
         {selectedProject && (
           <motion.div
+            ref={modalRef}
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.6, ease: [0.76, 0, 0.24, 1] }}
             data-modal-dark
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`project-title-${selectedProject.id}`}
+            tabIndex={-1}
             onWheel={(e) => e.stopPropagation()}
             onTouchMove={(e) => e.stopPropagation()}
             style={{
@@ -453,6 +523,7 @@ export default function Work() {
           >
             {/* Close Button */}
             <button
+              ref={closeButtonRef}
               onClick={() => setSelectedProject(null)}
               className="fixed z-[101] group"
               style={{
@@ -511,6 +582,7 @@ export default function Work() {
                   {selectedProject.index}
                 </span>
                 <h2
+                  id={`project-title-${selectedProject.id}`}
                   style={{
                     fontFamily: "var(--font-display)",
                     fontWeight: 300,
@@ -677,7 +749,7 @@ export default function Work() {
                   >
                     Links
                   </span>
-                  {selectedProject.live && (
+                  {!isPlaceholderHref(selectedProject.live) ? (
                     <a
                       href={selectedProject.live}
                       target="_blank"
@@ -704,8 +776,28 @@ export default function Work() {
                       View Live
                       <span style={{ fontSize: "14px" }}>↗</span>
                     </a>
+                  ) : (
+                    <span
+                      aria-disabled="true"
+                      title="Replace the placeholder URL to enable this link."
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "16px",
+                        fontWeight: 400,
+                        color: "var(--text-light)",
+                        letterSpacing: "0.05em",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        opacity: 0.45,
+                        cursor: "not-allowed",
+                      }}
+                    >
+                      View Live
+                      <span style={{ fontSize: "14px" }}>↗</span>
+                    </span>
                   )}
-                  {selectedProject.github && (
+                  {!isPlaceholderHref(selectedProject.github) ? (
                     <a
                       href={selectedProject.github}
                       target="_blank"
@@ -732,6 +824,26 @@ export default function Work() {
                       GitHub
                       <span style={{ fontSize: "14px" }}>↗</span>
                     </a>
+                  ) : (
+                    <span
+                      aria-disabled="true"
+                      title="Replace the placeholder URL to enable this link."
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "16px",
+                        fontWeight: 400,
+                        color: "var(--text-light)",
+                        letterSpacing: "0.05em",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        opacity: 0.45,
+                        cursor: "not-allowed",
+                      }}
+                    >
+                      GitHub
+                      <span style={{ fontSize: "14px" }}>↗</span>
+                    </span>
                   )}
                 </div>
               </motion.div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { gsap } from "@/lib/gsap";
 import { useLoader } from "@/contexts/LoaderContext";
 
 const EXPERIENCE = [
@@ -37,7 +37,6 @@ const EXPERIENCE = [
 export default function Experience() {
   const sectionRef = useRef<HTMLElement>(null);
   const labelRef = useRef<HTMLSpanElement>(null);
-  const timelineLineRef = useRef<SVGLineElement>(null);
   const timelineContainerRef = useRef<HTMLDivElement>(null);
   const entriesRef = useRef<(HTMLDivElement | null)[]>([]);
   const nodesRef = useRef<(HTMLDivElement | null)[]>([]);
@@ -131,7 +130,7 @@ export default function Experience() {
       id="experience"
       data-section="experience"
       className="section section-light"
-      style={{ minHeight: "100vh", padding: "240px 0 360px" }}
+      style={{ minHeight: "100vh", padding: "200px 0 280px" }}
     >
       <div className="section-content">
         {/* Section Label */}
@@ -173,7 +172,7 @@ export default function Experience() {
           />
 
           {/* Entries */}
-          <div className="flex flex-col" style={{ gap: "120px" }}>
+          <div className="flex flex-col" style={{ gap: "160px" }}>
             {EXPERIENCE.map((item, i) => (
               <div
                 key={i}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { gsap } from "@/lib/gsap";
 import { useLoader } from "@/contexts/LoaderContext";
 
 export default function About() {
@@ -19,34 +19,24 @@ export default function About() {
 
     const ctx = gsap.context(() => {
       // ═══════════════════════════════════════════════
-      // PULL QUOTE: Word-by-word clip reveal
+      // PULL QUOTE: simple fade-up (no DOM mutation)
       // ═══════════════════════════════════════════════
       if (quoteRef.current) {
-        const quoteEl = quoteRef.current;
-        const text = quoteEl.textContent || "";
-        const words = text.split(" ");
-
-        // Wrap each word in a clip container
-        quoteEl.innerHTML = words
-          .map(
-            (word) =>
-              `<span style="display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:4px;"><span class="quote-word" style="display:inline-block;transform:translateY(105%);">${word}</span></span>&nbsp;`
-          )
-          .join("");
-
-        const wordEls = quoteEl.querySelectorAll(".quote-word");
-
-        gsap.to(wordEls, {
-          y: "0%",
-          stagger: 0.05,
-          duration: 0.6,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 65%",
-            toggleActions: "play none none reverse",
-          },
-        });
+        gsap.fromTo(
+          quoteRef.current,
+          { opacity: 0, y: 18 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.7,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: sectionRef.current,
+              start: "top 65%",
+              toggleActions: "play none none reverse",
+            },
+          }
+        );
       }
 
       // ═══════════════════════════════════════════════
@@ -166,7 +156,6 @@ export default function About() {
               01 — About
             </span>
 
-            {/* Pull Quote — word-by-word clip reveal */}
             <p
               ref={quoteRef}
               style={{
@@ -178,6 +167,7 @@ export default function About() {
                 color: "var(--text-primary)",
                 marginBottom: "36px",
                 maxWidth: "440px",
+                opacity: 0,
               }}
             >
               I write code the way others compose music.

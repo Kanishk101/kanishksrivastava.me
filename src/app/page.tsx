@@ -4,12 +4,10 @@ import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { initLenis, destroyLenis } from "@/lib/lenis";
 import { useLoader } from "@/contexts/LoaderContext";
+import Nav from "@/components/Nav/Nav";
 
 /* ─── Dynamic imports for client-only components ─── */
 const Cursor = dynamic(() => import("@/components/Cursor/Cursor"), {
-  ssr: false,
-});
-const Nav = dynamic(() => import("@/components/Nav/Nav"), {
   ssr: false,
 });
 const Loader = dynamic(() => import("@/components/Loader/Loader"), {

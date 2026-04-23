@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { gsap } from "@/lib/gsap";
 import { useLoader } from "@/contexts/LoaderContext";
 import { Mail } from "lucide-react";
 import { SITE_EMAIL, SOCIAL_LINKS } from "@/lib/constants";
@@ -27,11 +27,13 @@ const XIcon = ({ size = 16 }: { size?: number }) => (
 
 /* Social links driven from constants — single source of truth (Issue 15 + 16 fix) */
 const CONTACT_LINKS = [
-  { label: "GitHub", icon: GithubIcon, href: SOCIAL_LINKS.github },
-  { label: "LinkedIn", icon: LinkedinIcon, href: SOCIAL_LINKS.linkedin },
-  { label: "Twitter/X", icon: XIcon, href: SOCIAL_LINKS.twitter },
-  { label: "Email", icon: Mail, href: `mailto:${SITE_EMAIL}` },
+  { label: "GitHub", icon: GithubIcon, href: SOCIAL_LINKS.github, external: true },
+  { label: "LinkedIn", icon: LinkedinIcon, href: SOCIAL_LINKS.linkedin, external: true },
+  { label: "Twitter/X", icon: XIcon, href: SOCIAL_LINKS.twitter, external: true },
+  { label: "Email", icon: Mail, href: `mailto:${SITE_EMAIL}`, external: false },
 ];
+
+const HEADING_LINES = ["Let's build something", "remarkable."];
 
 export default function Contact() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -39,34 +41,14 @@ export default function Contact() {
   const contentRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLAnchorElement>(null);
   const socialsRef = useRef<HTMLDivElement>(null);
+  const charRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const { loaderComplete } = useLoader();
 
   useEffect(() => {
     if (!sectionRef.current || !headingRef.current || !loaderComplete) return;
 
     const ctx = gsap.context(() => {
-      // ═══════════════════════════════════════════════
-      // CHARACTER-BY-CHARACTER HEADING REVEAL
-      // ═══════════════════════════════════════════════
-      const heading = headingRef.current!;
-
-      // Process each line separately (split by <br>)
-      const lines = heading.querySelectorAll(".heading-line");
-      const allChars: Element[] = [];
-
-      lines.forEach((line) => {
-        const text = line.textContent || "";
-        line.innerHTML = text
-          .split("")
-          .map(
-            (char) =>
-              `<span class="contact-char" style="display:inline-block;opacity:0;transform:translateY(10px);">${
-                char === " " ? "&nbsp;" : char
-              }</span>`
-          )
-          .join("");
-        line.querySelectorAll(".contact-char").forEach((c) => allChars.push(c));
-      });
+      const allChars = charRefs.current.filter(Boolean);
 
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -170,19 +152,7 @@ export default function Contact() {
       className="section section-dark relative flex flex-col items-center justify-center"
       style={{ minHeight: "110dvh", padding: "120px 24px 80px" }}
     >
-      {/* Grain suppression cover for dark section */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundColor: "var(--bg-dark)",
-          zIndex: 9991,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* All content above grain cover */}
-      <div style={{ position: "relative", zIndex: 9992, display: "contents" }}>
+      <div style={{ position: "relative", zIndex: 2, display: "contents" }}>
         {/* Main Heading — char-by-char reveal, explicit line break */}
         <h2
           ref={headingRef}
@@ -195,18 +165,46 @@ export default function Contact() {
             lineHeight: 1.1,
             maxWidth: "900px",
             position: "relative",
-            zIndex: 9992,
+            zIndex: 2,
           }}
         >
-          <span className="heading-line" style={{ display: "block" }}>Let&apos;s build something</span>
-          <span className="heading-line" style={{ display: "block" }}>remarkable.</span>
+          {HEADING_LINES.map((line, lineIndex) => {
+            const lineOffset = HEADING_LINES
+              .slice(0, lineIndex)
+              .reduce((total, item) => total + item.length, 0);
+
+            return (
+              <span
+                key={line}
+                className="heading-line"
+                style={{ display: "block" }}
+              >
+                {line.split("").map((char, charIndex) => (
+                  <span
+                    key={`${line}-${charIndex}`}
+                    ref={(el) => {
+                      charRefs.current[lineOffset + charIndex] = el;
+                    }}
+                    className="contact-char"
+                    style={{
+                      display: "inline-block",
+                      opacity: 0,
+                      transform: "translateY(10px)",
+                    }}
+                  >
+                    {char === " " ? "\u00A0" : char}
+                  </span>
+                ))}
+              </span>
+            );
+          })}
         </h2>
 
         {/* Content below heading */}
         <div
           ref={contentRef}
           className="flex flex-col items-center"
-          style={{ opacity: 0, position: "relative", zIndex: 9992 }}
+          style={{ opacity: 0, position: "relative", zIndex: 2 }}
         >
           {/* Subtext */}
           <p
@@ -268,8 +266,8 @@ export default function Contact() {
               <a
                 key={link.label}
                 href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
+                target={link.external ? "_blank" : undefined}
+                rel={link.external ? "noopener noreferrer" : undefined}
                 className="social-link flex items-center gap-2"
                 style={{
                   color: "var(--text-secondary)",
@@ -305,7 +303,7 @@ export default function Contact() {
           className="absolute bottom-0 left-0 right-0 flex flex-col sm:flex-row items-center justify-between"
           style={{
             padding: "24px 48px",
-            zIndex: 9992,
+            zIndex: 2,
           }}
         >
           <span

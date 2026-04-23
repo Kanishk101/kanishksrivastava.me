@@ -11,21 +11,41 @@ export default function Cursor() {
   const mouseRef = useRef({ x: -100, y: -100 });
   const posRef = useRef({ x: -100, y: -100 });
   const { cursorState, setCursorState } = useCursor();
-  const [mounted, setMounted] = useState(false);
-  const isTouchRef = useRef(false);
-
-  // Hydration-safe mount check (Bug 4 fix)
-  useEffect(() => {
-    const isTouch = window.matchMedia("(pointer: coarse)").matches;
-    isTouchRef.current = isTouch;
-    if (!isTouch) {
-      setMounted(true);
-    }
-  }, []);
+  const [mounted] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(pointer: fine)").matches
+  );
 
   // Mouse tracking + lerped follower
   useEffect(() => {
     if (!mounted) return;
+
+    const updateCursorColors = (x: number, y: number) => {
+      const el = document.elementFromPoint(x, y);
+      if (!el) return;
+
+      const isDark =
+        el.closest(".section-dark") !== null ||
+        el.closest("[data-modal-dark]") !== null;
+
+      const lightColor = "var(--text-light)";
+      const darkColor = "var(--text-primary)";
+
+      if (cursorRef.current) {
+        cursorRef.current.style.backgroundColor = isDark
+          ? lightColor
+          : darkColor;
+      }
+      if (followerRef.current) {
+        followerRef.current.style.borderColor = isDark
+          ? lightColor
+          : darkColor;
+      }
+      if (labelRef.current) {
+        labelRef.current.style.color = isDark ? lightColor : darkColor;
+      }
+    };
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current = { x: e.clientX, y: e.clientY };
@@ -33,6 +53,7 @@ export default function Cursor() {
         cursorRef.current.style.left = `${e.clientX}px`;
         cursorRef.current.style.top = `${e.clientY}px`;
       }
+      updateCursorColors(e.clientX, e.clientY);
     };
 
     const tickFollower = () => {
@@ -63,12 +84,19 @@ export default function Cursor() {
     if (!mounted) return;
 
     const handleClick = (e: MouseEvent) => {
-      // Clean concentric ripples — animate width/height, NOT scale
-      // Scale causes border pixelation; direct size keeps 1px borders crisp
+      // Detect light vs dark section for ripple visibility
+      const elUnder = document.elementFromPoint(e.clientX, e.clientY);
+      const isDark =
+        elUnder?.closest(".section-dark") !== null ||
+        elUnder?.closest("[data-modal-dark]") !== null;
+      const rippleColor = isDark
+        ? "rgba(196, 185, 174, 0.85)"   // accent on dark — visible
+        : "rgba(12, 12, 11, 0.45)";      // dark on light — visible
+
       const waves = [
-        { size: 140, dur: 0.65, delay: 0, opacity: 0.5 },
-        { size: 260, dur: 0.8, delay: 0.06, opacity: 0.35 },
-        { size: 400, dur: 0.95, delay: 0.12, opacity: 0.2 },
+        { size: 140, dur: 0.65, delay: 0, opacity: 0.55 },
+        { size: 260, dur: 0.8, delay: 0.06, opacity: 0.38 },
+        { size: 400, dur: 0.95, delay: 0.12, opacity: 0.22 },
       ];
 
       waves.forEach(({ size, dur, delay, opacity }) => {
@@ -80,7 +108,7 @@ export default function Cursor() {
           width: 0px;
           height: 0px;
           border-radius: 50%;
-          border: 1px solid var(--accent);
+          border: 1px solid ${rippleColor};
           pointer-events: none;
           z-index: 9997;
           transform: translate(-50%, -50%);
@@ -172,8 +200,10 @@ export default function Cursor() {
   useEffect(() => {
     if (!mounted) return;
 
-    const handleEnter = (e: Event) => {
-      const el = e.target as HTMLElement;
+    const handlePointerOver = (e: MouseEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (!el) return;
+
       if (
         el.closest("[data-cursor='pointer']") ||
         el.closest("[data-magnetic]")
@@ -188,58 +218,33 @@ export default function Cursor() {
       }
     };
 
-    const handleLeave = () => {
+    const handlePointerOut = (e: MouseEvent) => {
+      const nextTarget = e.relatedTarget as HTMLElement | null;
+      if (
+        nextTarget?.closest("[data-cursor='pointer']") ||
+        nextTarget?.closest("[data-magnetic]")
+      ) {
+        return;
+      }
+      if (
+        nextTarget?.closest("a") ||
+        nextTarget?.closest("button") ||
+        nextTarget?.closest("[role='button']")
+      ) {
+        return;
+      }
+
       setCursorState("DEFAULT");
     };
 
-    document.addEventListener("mouseover", handleEnter);
-    document.addEventListener("mouseout", handleLeave);
+    document.addEventListener("mouseover", handlePointerOver);
+    document.addEventListener("mouseout", handlePointerOut);
 
     return () => {
-      document.removeEventListener("mouseover", handleEnter);
-      document.removeEventListener("mouseout", handleLeave);
+      document.removeEventListener("mouseover", handlePointerOver);
+      document.removeEventListener("mouseout", handlePointerOut);
     };
   }, [mounted, setCursorState]);
-
-  // ═══════════════════════════════════════════════
-  // DARK SECTION + MODAL DETECTION
-  // Cursor inverts to white on dark backgrounds
-  // Checks both .section-dark and the project modal
-  // ═══════════════════════════════════════════════
-  useEffect(() => {
-    if (!mounted) return;
-
-    const checkDarkSection = () => {
-      const { x, y } = mouseRef.current;
-      const el = document.elementFromPoint(x, y);
-      if (!el) return;
-
-      // Check if cursor is over a dark section OR the project modal (bg-dark)
-      const isDark =
-        el.closest(".section-dark") !== null ||
-        el.closest("[data-modal-dark]") !== null;
-
-      const lightColor = "var(--text-light)";
-      const darkColor = "var(--text-primary)";
-
-      if (cursorRef.current) {
-        cursorRef.current.style.backgroundColor = isDark
-          ? lightColor
-          : darkColor;
-      }
-      if (followerRef.current) {
-        followerRef.current.style.borderColor = isDark
-          ? lightColor
-          : darkColor;
-      }
-      if (labelRef.current) {
-        labelRef.current.style.color = isDark ? lightColor : darkColor;
-      }
-    };
-
-    const intervalId = setInterval(checkDarkSection, 100);
-    return () => clearInterval(intervalId);
-  }, [mounted]);
 
   // State-driven cursor sizing
   useEffect(() => {

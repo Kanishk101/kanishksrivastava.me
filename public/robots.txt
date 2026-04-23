@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://kanishksrivastava.me/sitemap.xml

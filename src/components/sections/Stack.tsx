@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { gsap } from "@/lib/gsap";
 import { useLoader } from "@/contexts/LoaderContext";
 
 const SKILL_GROUPS = [
@@ -70,22 +70,21 @@ export default function Stack() {
           ease: "power2.out",
           scrollTrigger: {
             trigger: sectionRef.current,
-            start: "top 70%",
+            start: "top 80%",
             toggleActions: "play none none reverse",
           },
         }
       );
 
-      // Cards wave-in
+      // Cards wave-in — y only, opacity always 1
       const cards = strip.querySelectorAll(".stack-card");
       const offsets = [0, -20, 12, -12, 20];
       cards.forEach((card, i) => {
         gsap.fromTo(
           card,
-          { y: offsets[i % offsets.length], opacity: 0 },
+          { y: offsets[i % offsets.length] },
           {
             y: 0,
-            opacity: 1,
             duration: 0.7,
             delay: i * 0.1,
             ease: "power2.out",
@@ -133,7 +132,6 @@ export default function Stack() {
             color: "var(--text-muted)",
             display: "block",
             marginBottom: "56px",
-            opacity: 0,
           }}
         >
           03 — Stack
@@ -161,7 +159,6 @@ export default function Stack() {
                 padding: "36px",
                 display: "flex",
                 flexDirection: "column",
-                opacity: 0,
                 transition:
                   "background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease",
               }}

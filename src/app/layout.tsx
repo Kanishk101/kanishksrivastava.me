@@ -31,9 +31,18 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "Kanishk Srivastava — Full-Stack & iOS Engineer",
+  applicationName: "Kanishk Srivastava",
   description:
     "Portfolio of Kanishk Srivastava, a creative technologist building at the intersection of engineering and design.",
   metadataBase: new URL("https://kanishksrivastava.me"),
+  alternates: {
+    canonical: "/",
+  },
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+  },
   openGraph: {
     title: "Kanishk Srivastava — Full-Stack & iOS Engineer",
     description:
