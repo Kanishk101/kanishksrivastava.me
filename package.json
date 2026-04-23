@@ -1,6 +1,9 @@
 {
   "name": "kanishksrivastava.me",
   "version": "0.1.0",
+  "description": "Brutalist-luxury portfolio built with Next.js, GSAP, and Framer Motion",
+  "author": "Kanishk Srivastava",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "next dev",

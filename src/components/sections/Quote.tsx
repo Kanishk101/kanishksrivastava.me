@@ -75,15 +75,22 @@ export default function Quote() {
       style={{
         height: "100vh",
         zIndex: 2,
-        /* No grain texture — this is a moment of silence */
       }}
     >
-      {/* Override: hide global grain & grid on this section */}
-      <style jsx>{`
-        section {
-          isolation: isolate;
-        }
-      `}</style>
+      {/*
+        Grain suppression: a solid cover div that sits above the
+        body::before grain overlay (z-index 9990). This blocks the
+        grain from showing through on this dark section.
+      */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "var(--bg-dark)",
+          zIndex: 9991,
+          pointerEvents: "none",
+        }}
+      />
 
       <div
         className="text-center"
@@ -91,6 +98,8 @@ export default function Quote() {
           maxWidth: "65%",
           margin: "0 auto",
           padding: "0 24px",
+          position: "relative",
+          zIndex: 9992,
         }}
       >
         {/* The Quote */}
@@ -126,7 +135,7 @@ export default function Quote() {
             opacity: 0,
           }}
         >
-          — Steve Jobs
+          {"\u2014 Steve Jobs"}
         </p>
       </div>
     </section>

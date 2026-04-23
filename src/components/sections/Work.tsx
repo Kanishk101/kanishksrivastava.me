@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLoader } from "@/contexts/LoaderContext";
@@ -83,8 +83,10 @@ export default function Work() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [hoveredProject, setHoveredProject] = useState<string | null>(null);
   const hoverImageRef = useRef<HTMLDivElement>(null);
+  const hoverContentRef = useRef<HTMLSpanElement>(null);
   const mouseRef = useRef({ x: 0, y: 0 });
   const imgPosRef = useRef({ x: 0, y: 0 });
+  const lastMouseYRef = useRef(0);
   const { loaderComplete } = useLoader();
 
   // ═══════════════════════════════════════════════
@@ -93,6 +95,26 @@ export default function Work() {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current = { x: e.clientX + 20, y: e.clientY - 70 };
+
+      // Track vertical direction for content slide animation
+      const dy = e.clientY - lastMouseYRef.current;
+      lastMouseYRef.current = e.clientY;
+
+      if (hoverContentRef.current && Math.abs(dy) > 1) {
+        // Slide content in the direction of mouse movement
+        gsap.to(hoverContentRef.current, {
+          y: dy > 0 ? 6 : -6,
+          duration: 0.2,
+          ease: "power2.out",
+          overwrite: true,
+        });
+        gsap.to(hoverContentRef.current, {
+          y: 0,
+          duration: 0.4,
+          delay: 0.15,
+          ease: "power2.out",
+        });
+      }
     };
 
     const lerpImage = () => {
@@ -153,11 +175,24 @@ export default function Work() {
   useEffect(() => {
     if (selectedProject) {
       document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+      // Stop Lenis so it doesn't scroll underneath the modal
+      import("@/lib/lenis").then(({ getLenis }) => {
+        getLenis()?.stop();
+      });
     } else {
       document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      import("@/lib/lenis").then(({ getLenis }) => {
+        getLenis()?.start();
+      });
     }
     return () => {
       document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      import("@/lib/lenis").then(({ getLenis }) => {
+        getLenis()?.start();
+      });
     };
   }, [selectedProject]);
 
@@ -207,112 +242,151 @@ export default function Work() {
 
           {/* Project List */}
           <div>
-            {PROJECTS.map((project, i) => (
-              <div
-                key={project.id}
-                ref={(el) => {
-                  rowsRef.current[i] = el;
-                }}
-                className="project-row"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "48px 1fr auto auto",
-                  alignItems: "center",
-                  gap: "24px",
-                  height: "80px",
-                  borderBottom: "1px solid var(--grid-line)",
-                  opacity: 0,
-                  padding: "0 16px",
-                  position: "relative",
-                  transition: "background-color 0.25s ease",
-                }}
-                onMouseEnter={() => setHoveredProject(project.id)}
-                onMouseLeave={() => setHoveredProject(null)}
-                onClick={() => setSelectedProject(project)}
-                data-cursor="pointer"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") setSelectedProject(project);
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    "rgba(232, 228, 223, 0.6)";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = "transparent";
-                }}
-              >
-                {/* Index */}
-                <span
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontWeight: 700,
-                    fontSize: "13px",
-                    color: "var(--text-muted)",
+            {PROJECTS.map((project, i) => {
+              const marqueeText = `${project.name} · ${project.type} · ${project.year} · `.repeat(10);
+              return (
+                <div
+                  key={project.id}
+                  ref={(el) => {
+                    rowsRef.current[i] = el;
                   }}
+                  style={{ opacity: 0 }}
                 >
-                  {project.index}
-                </span>
-
-                {/* Name with hover underline */}
-                <span
-                  className="relative inline-block"
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontWeight: 700,
-                    fontSize: "clamp(22px, 3vw, 36px)",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {project.name}
-                  {/* Animated underline — wipes from left */}
-                  <span
+                  {/* Main Row */}
+                  <div
+                    className="project-row"
                     style={{
-                      position: "absolute",
-                      bottom: "2px",
-                      left: 0,
-                      width: "100%",
-                      height: "1.5px",
-                      backgroundColor: "var(--text-primary)",
-                      transform:
-                        hoveredProject === project.id
-                          ? "scaleX(1)"
-                          : "scaleX(0)",
-                      transformOrigin: "left center",
-                      transition: "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+                      display: "grid",
+                      gridTemplateColumns: "48px 1fr auto auto",
+                      alignItems: "center",
+                      gap: "24px",
+                      height: "80px",
+                      borderBottom: hoveredProject === project.id ? "none" : "1px solid var(--grid-line)",
+                      padding: "0 16px",
+                      position: "relative",
+                      transition: "background-color 0.25s ease",
                     }}
-                  />
-                </span>
+                    onMouseEnter={() => setHoveredProject(project.id)}
+                    onMouseLeave={() => setHoveredProject(null)}
+                    onClick={() => setSelectedProject(project)}
+                    data-cursor="pointer"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") setSelectedProject(project);
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor =
+                        "rgba(232, 228, 223, 0.6)";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                  >
+                    {/* Index */}
+                    <span
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontWeight: 700,
+                        fontSize: "13px",
+                        color: "var(--text-muted)",
+                      }}
+                    >
+                      {project.index}
+                    </span>
 
-                {/* Type */}
-                <span
-                  className="hidden sm:block"
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontWeight: 400,
-                    fontSize: "11px",
-                    letterSpacing: "0.3em",
-                    textTransform: "uppercase",
-                    color: "var(--text-secondary)",
-                  }}
-                >
-                  {project.type}
-                </span>
+                    {/* Name with hover underline */}
+                    <span
+                      className="relative inline-block"
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontWeight: 700,
+                        fontSize: "clamp(22px, 3vw, 36px)",
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      {project.name}
+                      {/* Animated underline — wipes from left */}
+                      <span
+                        style={{
+                          position: "absolute",
+                          bottom: "2px",
+                          left: 0,
+                          width: "100%",
+                          height: "1.5px",
+                          backgroundColor: "var(--text-primary)",
+                          transform:
+                            hoveredProject === project.id
+                              ? "scaleX(1)"
+                              : "scaleX(0)",
+                          transformOrigin: "left center",
+                          transition: "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+                        }}
+                      />
+                    </span>
 
-                {/* Year */}
-                <span
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontWeight: 400,
-                    fontSize: "13px",
-                    color: "var(--text-muted)",
-                  }}
-                >
-                  {project.year}
-                </span>
-              </div>
-            ))}
+                    {/* Type */}
+                    <span
+                      className="hidden sm:block"
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontWeight: 400,
+                        fontSize: "11px",
+                        letterSpacing: "0.3em",
+                        textTransform: "uppercase",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      {project.type}
+                    </span>
+
+                    {/* Year */}
+                    <span
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontWeight: 400,
+                        fontSize: "13px",
+                        color: "var(--text-muted)",
+                      }}
+                    >
+                      {project.year}
+                    </span>
+                  </div>
+
+                  {/* ═══ MARQUEE BAND — slides open on hover ═══ */}
+                  <div
+                    style={{
+                      height: hoveredProject === project.id ? "44px" : "0px",
+                      overflow: "hidden",
+                      backgroundColor: "var(--text-primary)",
+                      transition: "height 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+                      display: "flex",
+                      alignItems: "center",
+                      borderBottom: "1px solid var(--grid-line)",
+                    }}
+                    onMouseEnter={() => setHoveredProject(project.id)}
+                    onMouseLeave={() => setHoveredProject(null)}
+                    onClick={() => setSelectedProject(project)}
+                  >
+                    <div className="marquee-track">
+                      <span
+                        style={{
+                          fontFamily: "var(--font-sans)",
+                          fontWeight: 800,
+                          fontSize: "11px",
+                          letterSpacing: "0.3em",
+                          color: "var(--accent)",
+                          textTransform: "uppercase",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {marqueeText}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -338,12 +412,14 @@ export default function Work() {
           }}
         >
           <span
+            ref={hoverContentRef}
             style={{
               fontFamily: "var(--font-sans)",
               fontSize: "10px",
               color: "var(--text-muted)",
               letterSpacing: "0.2em",
               textTransform: "uppercase",
+              willChange: "transform",
             }}
           >
             {PROJECTS.find((p) => p.id === hoveredProject)?.name || ""}
@@ -361,12 +437,18 @@ export default function Work() {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ duration: 0.6, ease: [0.76, 0, 0.24, 1] }}
+            data-modal-dark
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
             style={{
               position: "fixed",
               inset: 0,
               zIndex: 100,
               backgroundColor: "var(--bg-dark)",
-              overflowY: "auto",
+              overflowY: "scroll",
+              WebkitOverflowScrolling: "touch",
+              overscrollBehavior: "contain",
+              touchAction: "pan-y",
             }}
           >
             {/* Close Button */}

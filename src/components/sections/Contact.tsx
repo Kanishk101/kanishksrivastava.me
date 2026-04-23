@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { useLoader } from "@/contexts/LoaderContext";
 import { Mail } from "lucide-react";
+import { SITE_EMAIL, SOCIAL_LINKS } from "@/lib/constants";
 
 /* Inline SVG icons for brands (lucide-react removed brand icons) */
 const GithubIcon = ({ size = 16 }: { size?: number }) => (
@@ -24,11 +25,12 @@ const XIcon = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
-const SOCIAL_LINKS = [
-  { label: "GitHub", icon: GithubIcon, href: "https://github.com/" },
-  { label: "LinkedIn", icon: LinkedinIcon, href: "https://linkedin.com/in/" },
-  { label: "Twitter/X", icon: XIcon, href: "https://x.com/" },
-  { label: "Email", icon: Mail, href: "mailto:hello@kanishksrivastava.me" },
+/* Social links driven from constants — single source of truth (Issue 15 + 16 fix) */
+const CONTACT_LINKS = [
+  { label: "GitHub", icon: GithubIcon, href: SOCIAL_LINKS.github },
+  { label: "LinkedIn", icon: LinkedinIcon, href: SOCIAL_LINKS.linkedin },
+  { label: "Twitter/X", icon: XIcon, href: SOCIAL_LINKS.twitter },
+  { label: "Email", icon: Mail, href: `mailto:${SITE_EMAIL}` },
 ];
 
 export default function Contact() {
@@ -168,148 +170,165 @@ export default function Contact() {
       className="section section-dark relative flex flex-col items-center justify-center"
       style={{ minHeight: "110dvh", padding: "120px 24px 80px" }}
     >
-      {/* Main Heading — char-by-char reveal, explicit line break */}
-      <h2
-        ref={headingRef}
-        style={{
-          fontFamily: "var(--font-display)",
-          fontWeight: 300,
-          fontSize: "clamp(40px, 7vw, 96px)",
-          color: "var(--text-light)",
-          textAlign: "center",
-          lineHeight: 1.1,
-          maxWidth: "900px",
-        }}
-      >
-        <span className="heading-line" style={{ display: "block" }}>Let&apos;s build something</span>
-        <span className="heading-line" style={{ display: "block" }}>remarkable.</span>
-      </h2>
-
-      {/* Content below heading */}
+      {/* Grain suppression cover for dark section */}
       <div
-        ref={contentRef}
-        className="flex flex-col items-center"
-        style={{ opacity: 0 }}
-      >
-        {/* Subtext */}
-        <p
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "var(--bg-dark)",
+          zIndex: 9991,
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* All content above grain cover */}
+      <div style={{ position: "relative", zIndex: 9992, display: "contents" }}>
+        {/* Main Heading — char-by-char reveal, explicit line break */}
+        <h2
+          ref={headingRef}
           style={{
-            fontFamily: "var(--font-body)",
+            fontFamily: "var(--font-display)",
             fontWeight: 300,
-            fontSize: "16px",
-            color: "var(--text-secondary)",
-            marginTop: "16px",
-            textAlign: "center",
-          }}
-        >
-          Currently open to full-time roles and select freelance projects.
-        </p>
-
-        {/* Email CTA — magnetic effect */}
-        <a
-          ref={ctaRef}
-          href="mailto:hello@kanishksrivastava.me"
-          data-magnetic
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontWeight: 700,
-            fontSize: "20px",
+            fontSize: "clamp(40px, 7vw, 96px)",
             color: "var(--text-light)",
-            border: "1px solid var(--bg-dark-border)",
-            padding: "18px 40px",
-            marginTop: "40px",
-            backgroundColor: "transparent",
-            transition:
-              "background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease",
-            backgroundImage: "none",
-            display: "inline-block",
-            willChange: "transform",
-          }}
-          onMouseEnter={(e) => {
-            const el = e.currentTarget;
-            el.style.backgroundColor = "var(--text-light)";
-            el.style.color = "var(--bg-dark)";
-            el.style.borderColor = "var(--text-light)";
-          }}
-          onMouseLeave={(e) => {
-            const el = e.currentTarget;
-            el.style.backgroundColor = "transparent";
-            el.style.color = "var(--text-light)";
-            el.style.borderColor = "var(--bg-dark-border)";
+            textAlign: "center",
+            lineHeight: 1.1,
+            maxWidth: "900px",
+            position: "relative",
+            zIndex: 9992,
           }}
         >
-          hello@kanishksrivastava.me
-        </a>
+          <span className="heading-line" style={{ display: "block" }}>Let&apos;s build something</span>
+          <span className="heading-line" style={{ display: "block" }}>remarkable.</span>
+        </h2>
 
-        {/* Social Links */}
+        {/* Content below heading */}
         <div
-          ref={socialsRef}
-          className="flex items-center flex-wrap justify-center"
-          style={{ gap: "40px", marginTop: "48px" }}
+          ref={contentRef}
+          className="flex flex-col items-center"
+          style={{ opacity: 0, position: "relative", zIndex: 9992 }}
         >
-          {SOCIAL_LINKS.map((link) => (
-            <a
-              key={link.label}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="social-link flex items-center gap-2"
-              style={{
-                color: "var(--text-secondary)",
-                transition: "color 0.2s ease",
-                backgroundImage: "none",
-                opacity: 0,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--text-light)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--text-secondary)";
-              }}
-            >
-              <link.icon size={16} />
-              <span
+          {/* Subtext */}
+          <p
+            style={{
+              fontFamily: "var(--font-body)",
+              fontWeight: 300,
+              fontSize: "16px",
+              color: "var(--text-secondary)",
+              marginTop: "16px",
+              textAlign: "center",
+            }}
+          >
+            Currently open to full-time roles and select freelance projects.
+          </p>
+
+          {/* Email CTA — magnetic effect, uses centralized constant */}
+          <a
+            ref={ctaRef}
+            href={`mailto:${SITE_EMAIL}`}
+            data-magnetic
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontWeight: 700,
+              fontSize: "20px",
+              color: "var(--text-light)",
+              border: "1px solid var(--bg-dark-border)",
+              padding: "18px 40px",
+              marginTop: "40px",
+              backgroundColor: "transparent",
+              transition:
+                "background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease",
+              backgroundImage: "none",
+              display: "inline-block",
+              willChange: "transform",
+            }}
+            onMouseEnter={(e) => {
+              const el = e.currentTarget;
+              el.style.backgroundColor = "var(--text-light)";
+              el.style.color = "var(--bg-dark)";
+              el.style.borderColor = "var(--text-light)";
+            }}
+            onMouseLeave={(e) => {
+              const el = e.currentTarget;
+              el.style.backgroundColor = "transparent";
+              el.style.color = "var(--text-light)";
+              el.style.borderColor = "var(--bg-dark-border)";
+            }}
+          >
+            {SITE_EMAIL}
+          </a>
+
+          {/* Social Links — driven from constants */}
+          <div
+            ref={socialsRef}
+            className="flex items-center flex-wrap justify-center"
+            style={{ gap: "40px", marginTop: "48px" }}
+          >
+            {CONTACT_LINKS.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-link flex items-center gap-2"
                 style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "11px",
-                  letterSpacing: "0.2em",
-                  textTransform: "uppercase",
+                  color: "var(--text-secondary)",
+                  transition: "color 0.2s ease",
+                  backgroundImage: "none",
+                  opacity: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--text-light)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-secondary)";
                 }}
               >
-                {link.label}
-              </span>
-            </a>
-          ))}
+                <link.icon size={16} />
+                <span
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "11px",
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {link.label}
+                </span>
+              </a>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Footer */}
-      <div
-        className="absolute bottom-0 left-0 right-0 flex flex-col sm:flex-row items-center justify-between"
-        style={{
-          padding: "24px 48px",
-        }}
-      >
-        <span
+        {/* Footer */}
+        <div
+          className="absolute bottom-0 left-0 right-0 flex flex-col sm:flex-row items-center justify-between"
           style={{
-            fontFamily: "var(--font-sans)",
-            fontWeight: 400,
-            fontSize: "11px",
-            color: "var(--bg-dark-border)",
+            padding: "24px 48px",
+            zIndex: 9992,
           }}
         >
-          © {new Date().getFullYear()} Kanishk Srivastava
-        </span>
-        <span
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontWeight: 400,
-            fontSize: "11px",
-            color: "var(--bg-dark-border)",
-          }}
-        >
-          Designed & Built with intention
-        </span>
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontWeight: 400,
+              fontSize: "11px",
+              color: "var(--bg-dark-border)",
+            }}
+          >
+            © {new Date().getFullYear()} Kanishk Srivastava
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-sans)",
+              fontWeight: 400,
+              fontSize: "11px",
+              color: "var(--bg-dark-border)",
+            }}
+          >
+            Designed & Built with intention
+          </span>
+        </div>
       </div>
     </section>
   );

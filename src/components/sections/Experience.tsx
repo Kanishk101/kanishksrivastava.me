@@ -131,7 +131,7 @@ export default function Experience() {
       id="experience"
       data-section="experience"
       className="section section-light"
-      style={{ minHeight: "100vh", padding: "160px 0 120px" }}
+      style={{ minHeight: "100vh", padding: "240px 0 360px" }}
     >
       <div className="section-content">
         {/* Section Label */}
@@ -173,7 +173,7 @@ export default function Experience() {
           />
 
           {/* Entries */}
-          <div className="flex flex-col" style={{ gap: "56px" }}>
+          <div className="flex flex-col" style={{ gap: "120px" }}>
             {EXPERIENCE.map((item, i) => (
               <div
                 key={i}

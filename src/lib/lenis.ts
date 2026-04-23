@@ -1,7 +1,7 @@
 "use client";
 
 import Lenis from "lenis";
-import { gsap } from "@/lib/gsap";
+import { gsap, ScrollTrigger } from "@/lib/gsap";
 
 let lenisInstance: Lenis | null = null;
 
@@ -13,7 +13,9 @@ export function initLenis(): Lenis {
     smoothWheel: true,
   });
 
-  // Sync Lenis scroll with GSAP ticker
+  // Sync Lenis scroll with GSAP ScrollTrigger
+  lenisInstance.on("scroll", ScrollTrigger.update);
+
   gsap.ticker.add((time) => {
     lenisInstance?.raf(time * 1000);
   });

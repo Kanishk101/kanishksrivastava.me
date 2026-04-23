@@ -8,8 +8,6 @@ export default function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
   const pinContainerRef = useRef<HTMLDivElement>(null);
   const nameContainerRef = useRef<HTMLDivElement>(null);
-  const roleRef = useRef<HTMLParagraphElement>(null);
-  const manifestoRef = useRef<HTMLParagraphElement>(null);
   const scrollIndicatorRef = useRef<HTMLDivElement>(null);
   const charsRef = useRef<HTMLSpanElement[]>([]);
   const mouseRef = useRef({ x: 0, y: 0 });
@@ -91,25 +89,9 @@ export default function Hero() {
           letterSpacing: "-0.02em",
           opacity: 1,
           ease: "none",
-          duration: 0.5, // completes at 50% of scroll
+          duration: 0.45, // completes at 45% of scroll
         },
         0
-      );
-
-      // Role line fades in at 45% — name is nearly full size
-      perspectiveTl.fromTo(
-        roleRef.current,
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.1, ease: "power2.out" },
-        0.45
-      );
-
-      // Manifesto fades in at 52%
-      perspectiveTl.fromTo(
-        manifestoRef.current,
-        { opacity: 0, y: 15 },
-        { opacity: 1, y: 0, duration: 0.1, ease: "power2.out" },
-        0.52
       );
 
       // Scroll indicator fades out early
@@ -176,7 +158,7 @@ export default function Hero() {
       data-section="hero"
       className="section section-light relative"
       style={{
-        height: "300vh",
+        height: "800vh",
       }}
     >
       {/* Pinned content container */}
@@ -219,43 +201,6 @@ export default function Hero() {
             </span>
           </h1>
         </div>
-
-        {/* Role line — appears after scroll */}
-        <p
-          ref={roleRef}
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontWeight: 400,
-            fontSize: "11px",
-            letterSpacing: "0.3em",
-            textTransform: "uppercase",
-            color: "var(--text-secondary)",
-            marginTop: "32px",
-            opacity: 0,
-            textAlign: "center",
-          }}
-        >
-          Full-Stack Engineer · iOS Developer · Creative Technologist
-        </p>
-
-        {/* Manifesto tagline */}
-        <p
-          ref={manifestoRef}
-          style={{
-            fontFamily: "var(--font-body)",
-            fontWeight: 300,
-            fontSize: "16px",
-            color: "var(--text-muted)",
-            textAlign: "center",
-            maxWidth: "400px",
-            marginTop: "16px",
-            lineHeight: 1.6,
-            opacity: 0,
-          }}
-        >
-          I build things that work beautifully.
-          <br />I design things that work precisely.
-        </p>
 
         {/* Scroll Indicator */}
         <div

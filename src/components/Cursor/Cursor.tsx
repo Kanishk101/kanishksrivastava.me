@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "@/lib/gsap";
 import { useCursor } from "@/contexts/CursorContext";
 
@@ -11,24 +11,30 @@ export default function Cursor() {
   const mouseRef = useRef({ x: -100, y: -100 });
   const posRef = useRef({ x: -100, y: -100 });
   const { cursorState, setCursorState } = useCursor();
-  const isTouch = useRef(false);
-  const isDarkRef = useRef(false);
+  const [mounted, setMounted] = useState(false);
+  const isTouchRef = useRef(false);
 
-  // Detect touch
+  // Hydration-safe mount check (Bug 4 fix)
   useEffect(() => {
-    isTouch.current = window.matchMedia("(pointer: coarse)").matches;
-    if (isTouch.current) return;
+    const isTouch = window.matchMedia("(pointer: coarse)").matches;
+    isTouchRef.current = isTouch;
+    if (!isTouch) {
+      setMounted(true);
+    }
+  }, []);
+
+  // Mouse tracking + lerped follower
+  useEffect(() => {
+    if (!mounted) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current = { x: e.clientX, y: e.clientY };
-      // Instant update for dot
       if (cursorRef.current) {
         cursorRef.current.style.left = `${e.clientX}px`;
         cursorRef.current.style.top = `${e.clientY}px`;
       }
     };
 
-    // Lerped follower via GSAP ticker
     const tickFollower = () => {
       const lerp = 0.12;
       posRef.current.x += (mouseRef.current.x - posRef.current.x) * lerp;
@@ -47,15 +53,131 @@ export default function Cursor() {
       window.removeEventListener("mousemove", handleMouseMove);
       gsap.ticker.remove(tickFollower);
     };
-  }, []);
+  }, [mounted]);
+
+  // ═══════════════════════════════════════════════
+  // CLICK RIPPLE EFFECT
+  // Creates an expanding ring at click position + squash-spring on cursor dot
+  // ═══════════════════════════════════════════════
+  useEffect(() => {
+    if (!mounted) return;
+
+    const handleClick = (e: MouseEvent) => {
+      // Clean concentric ripples — animate width/height, NOT scale
+      // Scale causes border pixelation; direct size keeps 1px borders crisp
+      const waves = [
+        { size: 140, dur: 0.65, delay: 0, opacity: 0.5 },
+        { size: 260, dur: 0.8, delay: 0.06, opacity: 0.35 },
+        { size: 400, dur: 0.95, delay: 0.12, opacity: 0.2 },
+      ];
+
+      waves.forEach(({ size, dur, delay, opacity }) => {
+        const wave = document.createElement("div");
+        wave.style.cssText = `
+          position: fixed;
+          left: ${e.clientX}px;
+          top: ${e.clientY}px;
+          width: 0px;
+          height: 0px;
+          border-radius: 50%;
+          border: 1px solid var(--accent);
+          pointer-events: none;
+          z-index: 9997;
+          transform: translate(-50%, -50%);
+          opacity: ${opacity};
+        `;
+        document.body.appendChild(wave);
+
+        gsap.to(wave, {
+          width: size,
+          height: size,
+          opacity: 0,
+          duration: dur,
+          delay,
+          ease: "power3.out",
+          onComplete: () => wave.remove(),
+        });
+      });
+
+      // Subtle dot squeeze
+      if (cursorRef.current) {
+        gsap.fromTo(
+          cursorRef.current,
+          { scaleX: 1.4, scaleY: 0.7 },
+          {
+            scaleX: 1,
+            scaleY: 1,
+            duration: 0.45,
+            ease: "elastic.out(1, 0.4)",
+          }
+        );
+      }
+    };
+
+    window.addEventListener("click", handleClick);
+    return () => window.removeEventListener("click", handleClick);
+  }, [mounted]);
+
+  // ═══════════════════════════════════════════════
+  // GLOBAL MAGNETIC EFFECT
+  // Applies to all [data-magnetic] elements site-wide
+  // ═══════════════════════════════════════════════
+  useEffect(() => {
+    if (!mounted) return;
+
+    const magneticEls = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-magnetic]")
+    );
+
+    const handlers = magneticEls.map((el) => {
+      const onMove = (e: MouseEvent) => {
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = e.clientX - cx;
+        const dy = e.clientY - cy;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 100) {
+          const s = (1 - dist / 100) * 0.38;
+          gsap.to(el, {
+            x: dx * s,
+            y: dy * s,
+            duration: 0.3,
+            ease: "power2.out",
+          });
+        }
+      };
+      const onLeave = () => {
+        gsap.to(el, {
+          x: 0,
+          y: 0,
+          duration: 0.55,
+          ease: "elastic.out(1, 0.3)",
+        });
+      };
+      el.addEventListener("mousemove", onMove);
+      el.addEventListener("mouseleave", onLeave);
+      return { el, onMove, onLeave };
+    });
+
+    return () => {
+      handlers.forEach(({ el, onMove, onLeave }) => {
+        el.removeEventListener("mousemove", onMove);
+        el.removeEventListener("mouseleave", onLeave);
+      });
+    };
+  }, [mounted]);
 
   // Auto-detect interactive elements globally
   useEffect(() => {
-    if (isTouch.current) return;
+    if (!mounted) return;
 
     const handleEnter = (e: Event) => {
       const el = e.target as HTMLElement;
-      if (el.closest("[data-cursor='pointer']") || el.closest("[data-magnetic]")) {
+      if (
+        el.closest("[data-cursor='pointer']") ||
+        el.closest("[data-magnetic]")
+      ) {
         setCursorState("HOVER_PROJECT");
       } else if (
         el.closest("a") ||
@@ -77,42 +199,51 @@ export default function Cursor() {
       document.removeEventListener("mouseover", handleEnter);
       document.removeEventListener("mouseout", handleLeave);
     };
-  }, [setCursorState]);
+  }, [mounted, setCursorState]);
 
-  // Dark section detection for cursor color inversion
+  // ═══════════════════════════════════════════════
+  // DARK SECTION + MODAL DETECTION
+  // Cursor inverts to white on dark backgrounds
+  // Checks both .section-dark and the project modal
+  // ═══════════════════════════════════════════════
   useEffect(() => {
-    if (isTouch.current) return;
+    if (!mounted) return;
 
     const checkDarkSection = () => {
       const { x, y } = mouseRef.current;
       const el = document.elementFromPoint(x, y);
-      const dark = el?.closest(".section-dark") !== null;
-      isDarkRef.current = dark;
+      if (!el) return;
+
+      // Check if cursor is over a dark section OR the project modal (bg-dark)
+      const isDark =
+        el.closest(".section-dark") !== null ||
+        el.closest("[data-modal-dark]") !== null;
+
+      const lightColor = "var(--text-light)";
+      const darkColor = "var(--text-primary)";
 
       if (cursorRef.current) {
-        cursorRef.current.style.backgroundColor = dark
-          ? "var(--text-light)"
-          : "var(--text-primary)";
+        cursorRef.current.style.backgroundColor = isDark
+          ? lightColor
+          : darkColor;
       }
       if (followerRef.current) {
-        followerRef.current.style.borderColor = dark
-          ? "var(--text-light)"
-          : "var(--text-primary)";
+        followerRef.current.style.borderColor = isDark
+          ? lightColor
+          : darkColor;
       }
       if (labelRef.current) {
-        labelRef.current.style.color = dark
-          ? "var(--text-light)"
-          : "var(--text-primary)";
+        labelRef.current.style.color = isDark ? lightColor : darkColor;
       }
     };
 
-    const intervalId = setInterval(checkDarkSection, 150);
+    const intervalId = setInterval(checkDarkSection, 100);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [mounted]);
 
   // State-driven cursor sizing
   useEffect(() => {
-    if (isTouch.current || !followerRef.current || !cursorRef.current) return;
+    if (!mounted || !followerRef.current || !cursorRef.current) return;
 
     const dot = cursorRef.current;
     const follower = followerRef.current;
@@ -160,7 +291,7 @@ export default function Cursor() {
         gsap.to(follower, { opacity: 0, duration: 0.15 });
         break;
 
-      case "JITTER":
+      case "JITTER": {
         const jitterTl = gsap.timeline();
         for (let j = 0; j < 6; j++) {
           jitterTl.to(dot, {
@@ -172,13 +303,12 @@ export default function Cursor() {
         jitterTl.to(dot, { x: 0, y: 0, duration: 0.1 });
         jitterTl.call(() => setCursorState("DEFAULT"));
         break;
+      }
     }
-  }, [cursorState, setCursorState]);
+  }, [cursorState, mounted, setCursorState]);
 
-  // Don't render on touch devices
-  if (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches) {
-    return null;
-  }
+  // Don't render until mounted (prevents SSR hydration mismatch)
+  if (!mounted) return null;
 
   return (
     <>
@@ -196,7 +326,7 @@ export default function Cursor() {
           zIndex: 9999,
           transform: "translate(-50%, -50%)",
           willChange: "left, top",
-          mixBlendMode: "exclusion",
+          transition: "background-color 0.3s ease",
         }}
       />
 
@@ -220,7 +350,6 @@ export default function Cursor() {
           transition: "border-color 0.3s ease",
         }}
       >
-        {/* "View →" label for project hover */}
         <span
           ref={labelRef}
           style={{
@@ -237,7 +366,6 @@ export default function Cursor() {
         </span>
       </div>
 
-      {/* Hide default cursor globally */}
       <style jsx global>{`
         @media (pointer: fine) {
           * {

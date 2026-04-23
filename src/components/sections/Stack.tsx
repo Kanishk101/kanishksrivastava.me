@@ -29,15 +29,37 @@ const SKILL_GROUPS = [
 
 export default function Stack() {
   const sectionRef = useRef<HTMLElement>(null);
+  const pinContainerRef = useRef<HTMLDivElement>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLSpanElement>(null);
-  const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const { loaderComplete } = useLoader();
 
   useEffect(() => {
-    if (!sectionRef.current || !loaderComplete) return;
+    if (!sectionRef.current || !stripRef.current || !loaderComplete) return;
 
     const ctx = gsap.context(() => {
-      // Section label
+      const strip = stripRef.current!;
+      const stripWidth = strip.scrollWidth;
+      const viewportWidth = window.innerWidth;
+      const scrollDistance = stripWidth - viewportWidth + 200;
+
+      if (scrollDistance > 0) {
+        gsap.to(strip, {
+          x: -scrollDistance,
+          ease: "none",
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top top",
+            end: "bottom top",
+            scrub: 0.5,
+            pin: pinContainerRef.current!,
+            pinSpacing: true,
+            anticipatePin: 1,
+          },
+        });
+      }
+
+      // Label fades in
       gsap.fromTo(
         labelRef.current,
         { opacity: 0, y: 15 },
@@ -54,43 +76,22 @@ export default function Stack() {
         }
       );
 
-      // Cards stagger in
-      cardsRef.current.forEach((card, i) => {
-        if (!card) return;
-
+      // Cards wave-in
+      const cards = strip.querySelectorAll(".stack-card");
+      const offsets = [0, -20, 12, -12, 20];
+      cards.forEach((card, i) => {
         gsap.fromTo(
           card,
-          { opacity: 0, y: 30 },
+          { y: offsets[i % offsets.length], opacity: 0 },
           {
-            opacity: 1,
             y: 0,
-            duration: 0.5,
-            delay: i * 0.08,
+            opacity: 1,
+            duration: 0.7,
+            delay: i * 0.1,
             ease: "power2.out",
             scrollTrigger: {
               trigger: sectionRef.current,
-              start: "top 65%",
-              toggleActions: "play none none reverse",
-            },
-          }
-        );
-
-        // Stagger pills inside each card after card appears
-        const pills = card.querySelectorAll(".skill-pill");
-        gsap.fromTo(
-          pills,
-          { opacity: 0, y: 8, scale: 0.95 },
-          {
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            stagger: 0.03,
-            duration: 0.3,
-            delay: i * 0.08 + 0.15,
-            ease: "power2.out",
-            scrollTrigger: {
-              trigger: sectionRef.current,
-              start: "top 65%",
+              start: "top 80%",
               toggleActions: "play none none reverse",
             },
           }
@@ -107,9 +108,19 @@ export default function Stack() {
       id="stack"
       data-section="stack"
       className="section section-light"
-      style={{ minHeight: "100vh", padding: "160px 0 120px" }}
+      style={{ height: "500vh" }}
     >
-      <div className="section-content">
+      <div
+        ref={pinContainerRef}
+        style={{
+          height: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          overflow: "hidden",
+          padding: "0 var(--space-2xl)",
+        }}
+      >
         {/* Section Label */}
         <span
           ref={labelRef}
@@ -128,34 +139,57 @@ export default function Stack() {
           03 — Stack
         </span>
 
-        {/* Skill Groups Grid — 3 columns desktop, 2 tablet, 1 mobile */}
+        {/* Horizontal Strip */}
         <div
+          ref={stripRef}
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: "48px 40px",
+            display: "flex",
+            gap: "40px",
+            willChange: "transform",
           }}
         >
-          {SKILL_GROUPS.map((group, i) => (
+          {SKILL_GROUPS.map((group) => (
             <div
               key={group.label}
-              ref={(el) => {
-                cardsRef.current[i] = el;
+              className="stack-card"
+              style={{
+                width: "380px",
+                minWidth: "380px",
+                height: "360px",
+                backgroundColor: "var(--bg-surface)",
+                border: "1px solid var(--grid-line)",
+                padding: "36px",
+                display: "flex",
+                flexDirection: "column",
+                opacity: 0,
+                transition:
+                  "background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease",
               }}
-              style={{ opacity: 0 }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget;
+                el.style.backgroundColor = "var(--bg-primary)";
+                el.style.borderColor = "var(--text-muted)";
+                el.style.transform = "translateY(-6px)";
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget;
+                el.style.backgroundColor = "var(--bg-surface)";
+                el.style.borderColor = "var(--grid-line)";
+                el.style.transform = "translateY(0)";
+              }}
             >
               {/* Group Label */}
               <h3
                 style={{
                   fontFamily: "var(--font-sans)",
-                  fontWeight: 700,
-                  fontSize: "11px",
+                  fontWeight: 800,
+                  fontSize: "10px",
                   letterSpacing: "0.4em",
                   textTransform: "uppercase",
                   color: "var(--text-muted)",
                   borderBottom: "1px solid var(--grid-line)",
-                  paddingBottom: "8px",
-                  marginBottom: "16px",
+                  paddingBottom: "14px",
+                  marginBottom: "24px",
                 }}
               >
                 {group.label}
@@ -170,23 +204,22 @@ export default function Stack() {
                     style={{
                       fontFamily: "var(--font-body)",
                       fontWeight: 300,
-                      fontSize: "13px",
+                      fontSize: "14px",
                       letterSpacing: "0.05em",
-                      padding: "6px 14px",
+                      padding: "8px 18px",
                       border: "1px solid var(--grid-line)",
                       backgroundColor: "transparent",
                       color: "var(--text-primary)",
                       transition:
                         "background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease",
                       display: "inline-block",
-                      opacity: 0,
                     }}
                     onMouseEnter={(e) => {
                       const el = e.currentTarget;
                       el.style.backgroundColor = "var(--bg-dark)";
                       el.style.color = "var(--text-light)";
                       el.style.borderColor = "var(--bg-dark)";
-                      el.style.transform = "translateY(-1px)";
+                      el.style.transform = "translateY(-2px)";
                     }}
                     onMouseLeave={(e) => {
                       const el = e.currentTarget;

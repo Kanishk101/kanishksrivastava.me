@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# internal build docs
+AGENTS.md
+Progress-1.md
+portfolio-PRD.md
+

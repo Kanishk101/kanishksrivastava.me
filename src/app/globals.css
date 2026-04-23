@@ -161,7 +161,8 @@ a:hover {
 .section {
   position: relative;
   width: 100%;
-  overflow: hidden;
+  /* overflow: clip removed — was clipping floating hover images and parallax.
+     Sections that need clipping should set it individually. */
 }
 
 .section-light {
@@ -253,3 +254,24 @@ a:hover {
     padding: 0 var(--space-lg);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MARQUEE TICKER — infinite horizontal scroll
+   Used in Work section project hover bands
+   ═══════════════════════════════════════════════════════════ */
+
+@keyframes marqueeScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  display: flex;
+  animation: marqueeScroll 15s linear infinite;
+  will-change: transform;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
