@@ -1,0 +1,75 @@
+/* ═══════════════════════════════════════════════════════════
+   DESIGN TOKENS — Brutalist-Luxury Portfolio
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─── Color Palette ─── */
+  --bg-primary: #F9F7F4;
+  --bg-surface: #F0EDE8;
+  --bg-dark: #0C0C0B;
+  --bg-dark-elevated: #1A1A18;
+  --bg-dark-subtle: #2A2A28;
+  --bg-dark-border: #3A3A38;
+
+  --text-primary: #0C0C0B;
+  --text-secondary: #6B6760;
+  --text-muted: #A8A49F;
+  --text-light: #F9F7F4;
+
+  --accent: #C4B9AE;
+  --grid-line: #E8E4DF;
+
+  /* ─── Typography Scale (fluid, clamp-based) ─── */
+  --text-hero: clamp(48px, 15vw, 200px);
+  --text-display: clamp(40px, 7vw, 96px);
+  --text-h1: clamp(36px, 5vw, 72px);
+  --text-h2: clamp(28px, 3.5vw, 48px);
+  --text-h3: clamp(22px, 2.5vw, 36px);
+  --text-h4: clamp(18px, 2vw, 24px);
+  --text-body: 16px;
+  --text-body-sm: 14px;
+  --text-caption: 13px;
+  --text-label: 11px;
+  --text-micro: 9px;
+
+  /* ─── Font Families (set by next/font variables) ─── */
+  --font-display: var(--font-cormorant);
+  --font-sans: var(--font-syne);
+  --font-body: var(--font-outfit);
+
+  /* ─── Spacing Scale ─── */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --space-4xl: 80px;
+  --space-5xl: 120px;
+  --space-6xl: 160px;
+
+  /* ─── Layout ─── */
+  --max-content: 1440px;
+  --grid-gap: 80px;
+  --nav-height: 72px;
+
+  /* ─── Animation Timing ─── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 200ms;
+  --duration-base: 300ms;
+  --duration-slow: 500ms;
+  --duration-cinematic: 700ms;
+
+  /* ─── Borders ─── */
+  --border-subtle: 1px solid var(--grid-line);
+  --border-accent: 1px solid var(--accent);
+  --border-dark: 1px solid var(--bg-dark-border);
+
+  /* ─── Cursor ─── */
+  --cursor-size: 8px;
+  --cursor-follower-size: 40px;
+  --cursor-project-size: 64px;
+}

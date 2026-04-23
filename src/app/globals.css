@@ -1,26 +1,289 @@
 @import "tailwindcss";
+@import "../styles/tokens.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ═══════════════════════════════════════════════════════════
+   TAILWIND v4 THEME — Design Token Bridge
+   ═══════════════════════════════════════════════════════════ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-dark: var(--bg-dark);
+  --color-bg-dark-elevated: var(--bg-dark-elevated);
+  --color-bg-dark-subtle: var(--bg-dark-subtle);
+  --color-bg-dark-border: var(--bg-dark-border);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-light: var(--text-light);
+
+  --color-accent: var(--accent);
+  --color-grid-line: var(--grid-line);
+
+  --font-display: var(--font-cormorant);
+  --font-sans: var(--font-syne);
+  --font-body: var(--font-outfit);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ═══════════════════════════════════════════════════════════
+   BASE RESET & TYPOGRAPHY
+   ═══════════════════════════════════════════════════════════ */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: auto; /* Lenis handles smooth scroll */
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-weight: 300;
+  font-size: var(--text-body);
+  line-height: 1.6;
+  overflow-x: hidden;
+  min-height: 100dvh;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TEXT SELECTION
+   ═══════════════════════════════════════════════════════════ */
+
+::selection {
+  background: var(--bg-dark);
+  color: var(--text-light);
+}
+
+::-moz-selection {
+  background: var(--bg-dark);
+  color: var(--text-light);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CUSTOM SCROLLBAR
+   ═══════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FOCUS STYLES
+   ═══════════════════════════════════════════════════════════ */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CUSTOM CURSOR (hide default on desktop)
+   ═══════════════════════════════════════════════════════════ */
+
+@media (pointer: fine) {
+  * {
+    cursor: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NOISE/GRAIN TEXTURE OVERLAY
+   Fixed, full-viewport, pointer-events: none
+   Uses an SVG feTurbulence filter for tactile depth
+   ═══════════════════════════════════════════════════════════ */
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Disable grain on dark sections (they handle it themselves) */
+.section-dark body::before {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GRID LINES BACKGROUND
+   Subtle horizontal rules at 80px intervals
+   ═══════════════════════════════════════════════════════════ */
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.3;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 79px,
+    var(--grid-line) 79px,
+    var(--grid-line) 80px
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CURSOR ELEMENTS
+   ═══════════════════════════════════════════════════════════ */
+
+#cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--cursor-size);
+  height: var(--cursor-size);
+  background-color: var(--text-primary);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10000;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s var(--ease-out),
+              height 0.3s var(--ease-out),
+              background-color 0.3s var(--ease-out),
+              opacity 0.3s var(--ease-out);
+  mix-blend-mode: difference;
+}
+
+#cursor-follower {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--cursor-follower-size);
+  height: var(--cursor-follower-size);
+  border: 1.5px solid var(--text-primary);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10000;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: width 0.4s var(--ease-out),
+              height 0.4s var(--ease-out),
+              opacity 0.3s var(--ease-out),
+              border-color 0.3s var(--ease-out);
+  mix-blend-mode: difference;
+}
+
+/* Cursor states */
+#cursor.hover-link {
+  width: var(--cursor-follower-size);
+  height: var(--cursor-follower-size);
+  background-color: transparent;
+  border: 1.5px solid var(--text-primary);
+}
+
+#cursor.hover-link + #cursor-follower {
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LINK HOVER UNDERLINES
+   Fill from left using background-size animation
+   ═══════════════════════════════════════════════════════════ */
+
+a {
+  text-decoration: none;
+  color: inherit;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0% 100%;
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  transition: background-size var(--duration-base) var(--ease-out);
+}
+
+a:hover {
+  background-size: 100% 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION BASE STYLES
+   ═══════════════════════════════════════════════════════════ */
+
+.section {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.section-light {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.section-surface {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.section-dark {
+  background-color: var(--bg-dark);
+  color: var(--text-light);
+}
+
+.section-content {
+  max-width: var(--max-content);
+  margin: 0 auto;
+  padding: 0 var(--space-2xl);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ═══════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE CURSOR — disable on touch devices
+   ═══════════════════════════════════════════════════════════ */
+
+@media (pointer: coarse) {
+  * {
+    cursor: auto !important;
+  }
+
+  #cursor,
+  #cursor-follower {
+    display: none !important;
+  }
 }
