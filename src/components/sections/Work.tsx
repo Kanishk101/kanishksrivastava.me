@@ -77,6 +77,24 @@ const PROJECTS: Project[] = [
   },
 ];
 
+const previewTextVariants = {
+  enter: (direction: number) => ({
+    y: direction > 0 ? "145%" : "-145%",
+    opacity: 0,
+    filter: "blur(7px)",
+  }),
+  center: {
+    y: "0%",
+    opacity: 1,
+    filter: "blur(0px)",
+  },
+  exit: (direction: number) => ({
+    y: direction > 0 ? "-145%" : "145%",
+    opacity: 0,
+    filter: "blur(7px)",
+  }),
+};
+
 export default function Work() {
   const sectionRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
@@ -567,17 +585,10 @@ export default function Work() {
                   <motion.span
                     key={displayedProject}
                     custom={previewDirection}
-                    initial={(direction) => ({
-                      y: direction > 0 ? "145%" : "-145%",
-                      opacity: 0,
-                      filter: "blur(7px)",
-                    })}
-                    animate={{ y: "0%", opacity: 1, filter: "blur(0px)" }}
-                    exit={(direction) => ({
-                      y: direction > 0 ? "-145%" : "145%",
-                      opacity: 0,
-                      filter: "blur(7px)",
-                    })}
+                    variants={previewTextVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
                     transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
                     style={{
                       position: "absolute",

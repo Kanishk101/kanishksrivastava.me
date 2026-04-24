@@ -92,8 +92,8 @@ export default function Cursor() {
       const waves = isDark
         ? [
             {
-              size: 150,
-              dur: 0.72,
+              size: 132,
+              dur: 0.82,
               delay: 0,
               opacity: 0.92,
               borderColor: "rgba(249, 247, 244, 0.92)",
@@ -101,18 +101,18 @@ export default function Cursor() {
               borderWidth: 1.8,
             },
             {
-              size: 280,
-              dur: 0.9,
-              delay: 0.05,
+              size: 236,
+              dur: 1.02,
+              delay: 0.07,
               opacity: 0.72,
               borderColor: "rgba(196, 185, 174, 0.95)",
               glowColor: "rgba(196, 185, 174, 0.42)",
               borderWidth: 1.5,
             },
             {
-              size: 440,
-              dur: 1.08,
-              delay: 0.1,
+              size: 356,
+              dur: 1.2,
+              delay: 0.12,
               opacity: 0.52,
               borderColor: "rgba(249, 247, 244, 0.78)",
               glowColor: "rgba(249, 247, 244, 0.2)",
@@ -121,8 +121,8 @@ export default function Cursor() {
           ]
         : [
             {
-              size: 150,
-              dur: 0.72,
+              size: 132,
+              dur: 0.82,
               delay: 0,
               opacity: 0.88,
               borderColor: "rgba(12, 12, 11, 0.88)",
@@ -130,18 +130,18 @@ export default function Cursor() {
               borderWidth: 1.8,
             },
             {
-              size: 280,
-              dur: 0.9,
-              delay: 0.05,
+              size: 236,
+              dur: 1.02,
+              delay: 0.07,
               opacity: 0.7,
               borderColor: "rgba(116, 108, 98, 0.78)",
               glowColor: "rgba(116, 108, 98, 0.2)",
               borderWidth: 1.45,
             },
             {
-              size: 440,
-              dur: 1.08,
-              delay: 0.1,
+              size: 356,
+              dur: 1.2,
+              delay: 0.12,
               opacity: 0.46,
               borderColor: "rgba(12, 12, 11, 0.62)",
               glowColor: "rgba(12, 12, 11, 0.12)",
