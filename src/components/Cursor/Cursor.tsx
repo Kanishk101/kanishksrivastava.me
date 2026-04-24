@@ -1,25 +1,62 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { gsap } from "@/lib/gsap";
 import { useCursor } from "@/contexts/CursorContext";
 
-const POINTER_SVG = encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 34" fill="none">
-  <path
-    d="M2 2v28.5l7.8-7.1 4.9 8.6 4.6-2.8-4.8-8.4h11.5L2 2Z"
-    fill="currentColor"
-    stroke="currentColor"
-    stroke-width="1.35"
-    stroke-linejoin="miter"
-  />
-</svg>
-`);
+const DISTORT_SELECTORS = [
+  "nav a",
+  "main h1",
+  "main h2",
+  "main h3",
+  "main p",
+  "main a",
+  "main button",
+  "main span[data-link-label]",
+].join(", ");
+
+const buildWavePaths = () => {
+  const arc = Math.random() * 4 + 2;
+  const drift = Math.random() * 4 + 1;
+  const spread = Math.random() * 3 + 1;
+
+  const variants = [
+    [
+      `M5 27 Q16 ${22 - arc} 32 ${22 - drift}`,
+      `M4 18 Q17 ${10 - arc} 38 ${10 - drift + spread}`,
+      `M3 9 Q18 ${-1 - arc} 44 ${0 - drift + spread}`,
+    ],
+    [
+      `M5 27 C14 ${23 - arc}, 22 ${19 - arc}, 33 ${20 - drift}`,
+      `M4 18 C15 ${11 - arc}, 24 ${7 - arc}, 39 ${8 - drift + spread}`,
+      `M3 9 C16 ${0 - arc}, 26 ${-3 - arc}, 45 ${-1 - drift + spread}`,
+    ],
+    [
+      `M5 27 Q15 ${23 - arc} 22 ${21 - arc} T34 ${21 - drift}`,
+      `M4 18 Q16 ${11 - arc} 24 ${8 - arc} T40 ${8 - drift + spread}`,
+      `M3 9 Q17 ${0 - arc} 27 ${-2 - arc} T46 ${0 - drift + spread}`,
+    ],
+    [
+      `M6 27 Q17 ${21 - arc} 30 ${24 - drift}`,
+      `M5 18 Q18 ${10 - arc} 37 ${12 - drift + spread}`,
+      `M4 9 Q19 ${-2 - arc} 43 ${2 - drift + spread}`,
+    ],
+  ] as const;
+
+  return variants[Math.floor(Math.random() * variants.length)];
+};
 
 export default function Cursor() {
   const cursorRef = useRef<HTMLDivElement>(null);
   const mouseRef = useRef({ x: -100, y: -100 });
   const posRef = useRef({ x: -100, y: -100 });
+  const hoverOffsetsRef = useRef(
+    new WeakMap<HTMLElement, { x: number; y: number }>()
+  );
+  const clickOffsetsRef = useRef(
+    new WeakMap<HTMLElement, { x: number; y: number }>()
+  );
+  const distortableRef = useRef<HTMLElement[]>([]);
   const { cursorState, setCursorState } = useCursor();
   const [mounted] = useState(
     () =>
@@ -27,25 +64,114 @@ export default function Cursor() {
       window.matchMedia("(pointer: fine)").matches
   );
 
+  const applyDistortion = useCallback((el: HTMLElement) => {
+    const hover = hoverOffsetsRef.current.get(el) || { x: 0, y: 0 };
+    const click = clickOffsetsRef.current.get(el) || { x: 0, y: 0 };
+    el.style.transform = `translate(${hover.x + click.x}px, ${hover.y + click.y}px)`;
+  }, []);
+
+  const splitTextNode = useCallback((node: Text) => {
+    if (!node.textContent || !node.parentElement) return;
+    if (!node.textContent.trim()) return;
+
+    const parent = node.parentElement;
+    const frag = document.createDocumentFragment();
+
+    node.textContent.split("").forEach((char) => {
+      const span = document.createElement("span");
+      span.className = "cursor-distort-char";
+      span.setAttribute("aria-hidden", "true");
+      span.style.display = "inline-block";
+      span.style.willChange = "transform";
+      span.style.transition = "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)";
+      span.textContent = char === " " ? "\u00A0" : char;
+      frag.appendChild(span);
+    });
+
+    parent.insertBefore(frag, node);
+    parent.removeChild(node);
+  }, []);
+
+  const splitElementText = useCallback(
+    (root: HTMLElement) => {
+      if (root.dataset.cursorSplit === "true") return;
+      if (root.closest("#cursor")) return;
+      if (root.classList.contains("hero-char")) return;
+      if (root.querySelector("input, textarea, select, svg")) return;
+
+      const textNodes: Text[] = [];
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+          if (!node.textContent?.trim()) return NodeFilter.FILTER_REJECT;
+          if (!node.parentElement) return NodeFilter.FILTER_REJECT;
+          if (
+            node.parentElement.closest(
+              "svg, script, style, input, textarea, select"
+            )
+          ) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          if (node.parentElement.classList.contains("hero-char")) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        },
+      });
+
+      while (walker.nextNode()) {
+        textNodes.push(walker.currentNode as Text);
+      }
+
+      if (textNodes.length === 0) {
+        root.dataset.cursorSplit = "true";
+        return;
+      }
+
+      if (!root.getAttribute("aria-label")) {
+        const label = root.textContent?.replace(/\s+/g, " ").trim();
+        if (label) root.setAttribute("aria-label", label);
+      }
+
+      textNodes.forEach(splitTextNode);
+      root.dataset.cursorSplit = "true";
+    },
+    [splitTextNode]
+  );
+
   useEffect(() => {
     if (!mounted) return;
 
-    const updateCursorColor = (x: number, y: number) => {
-      const el = document.elementFromPoint(x, y);
-      if (!el || !cursorRef.current) return;
+    const collectDistortables = () => {
+      Array.from(document.querySelectorAll<HTMLElement>(DISTORT_SELECTORS)).forEach(
+        (el) => splitElementText(el)
+      );
 
-      const isDark =
-        el.closest(".section-dark") !== null ||
-        el.closest("[data-modal-dark]") !== null;
+      distortableRef.current = Array.from(
+        document.querySelectorAll<HTMLElement>(".hero-char, .cursor-distort-char")
+      ).filter((el) => !el.closest("#cursor"));
 
-      cursorRef.current.style.color = isDark
-        ? "var(--text-light)"
-        : "var(--text-primary)";
+      distortableRef.current.forEach((el) => {
+        el.style.willChange = "transform";
+        if (!el.classList.contains("hero-char")) {
+          el.style.transition =
+            "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)";
+        }
+      });
     };
+
+    collectDistortables();
+    window.addEventListener("resize", collectDistortables);
+
+    return () => {
+      window.removeEventListener("resize", collectDistortables);
+    };
+  }, [mounted, splitElementText]);
+
+  useEffect(() => {
+    if (!mounted) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current = { x: e.clientX, y: e.clientY };
-      updateCursorColor(e.clientX, e.clientY);
     };
 
     const tickPointer = () => {
@@ -57,6 +183,30 @@ export default function Cursor() {
         cursorRef.current.style.left = `${posRef.current.x}px`;
         cursorRef.current.style.top = `${posRef.current.y}px`;
       }
+
+      const maxDist = 200;
+      distortableRef.current.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = mouseRef.current.x - cx;
+        const dy = mouseRef.current.y - cy;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < maxDist) {
+          const strength = (1 - dist / maxDist) * 0.35;
+          hoverOffsetsRef.current.set(el, {
+            x: dx * strength * 0.15,
+            y: dy * strength * 0.1,
+          });
+        } else {
+          hoverOffsetsRef.current.set(el, { x: 0, y: 0 });
+        }
+
+        applyDistortion(el);
+      });
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -66,7 +216,7 @@ export default function Cursor() {
       window.removeEventListener("mousemove", handleMouseMove);
       gsap.ticker.remove(tickPointer);
     };
-  }, [mounted]);
+  }, [applyDistortion, mounted]);
 
   useEffect(() => {
     if (!mounted || !cursorRef.current) return;
@@ -88,8 +238,8 @@ export default function Cursor() {
 
       case "HOVER_LINK":
         gsap.to(pointer, {
-          scale: 1.08,
-          rotate: -6,
+          scale: 1.06,
+          rotate: -7,
           x: 2,
           y: -2,
           duration: 0.24,
@@ -99,8 +249,8 @@ export default function Cursor() {
 
       case "HOVER_PROJECT":
         gsap.to(pointer, {
-          scale: 1.16,
-          rotate: -8,
+          scale: 1.14,
+          rotate: -10,
           x: 3,
           y: -3,
           duration: 0.28,
@@ -111,7 +261,7 @@ export default function Cursor() {
       case "HOVER_MAGNETIC":
         gsap.to(pointer, {
           scale: 0.94,
-          rotate: -10,
+          rotate: -12,
           duration: 0.22,
           ease: "power2.out",
         });
@@ -143,26 +293,32 @@ export default function Cursor() {
         elUnder?.closest("[data-modal-dark]") !== null;
 
       const color = isDark
-        ? "rgba(249, 247, 244, 0.94)"
-        : "rgba(12, 12, 11, 0.9)";
+        ? "rgba(249, 247, 244, 0.98)"
+        : "rgba(12, 12, 11, 0.94)";
+
+      const variant = buildWavePaths();
+      const rotation = -16 + Math.random() * 32;
+      const driftX = 4 + Math.random() * 10;
+      const driftY = -4 - Math.random() * 10;
+      const scaleBump = 1.26 + Math.random() * 0.18;
 
       const wave = document.createElement("div");
       wave.style.cssText = `
         position: fixed;
-        left: ${e.clientX - 22}px;
-        top: ${e.clientY - 22}px;
-        width: 38px;
-        height: 38px;
+        left: ${e.clientX + 6}px;
+        top: ${e.clientY - 28}px;
+        width: 58px;
+        height: 44px;
         pointer-events: none;
         z-index: 9997;
-        transform-origin: 12px 12px;
+        transform-origin: 6px 30px;
       `;
 
       wave.innerHTML = `
-        <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M10 14C12.8 11.2 16.4 9.6 20.4 9.4" stroke="${color}" stroke-width="3.2" stroke-linecap="square"/>
-          <path d="M8.6 10.2C12.7 6.3 18.1 4 24 3.9" stroke="${color}" stroke-width="2.6" stroke-linecap="square" opacity="0.86"/>
-          <path d="M7 6.2C12.7 1.4 20 -1.1 27.8 1" stroke="${color}" stroke-width="2.2" stroke-linecap="square" opacity="0.72"/>
+        <svg width="58" height="44" viewBox="0 0 58 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="${variant[0]}" stroke="${color}" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="${variant[1]}" stroke="${color}" stroke-width="3.9" stroke-linecap="round" stroke-linejoin="round" opacity="0.84"/>
+          <path d="${variant[2]}" stroke="${color}" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round" opacity="0.68"/>
         </svg>
       `;
 
@@ -170,25 +326,73 @@ export default function Cursor() {
 
       gsap.fromTo(
         wave,
-        { scale: 0.72, opacity: 0.96, x: 0, y: 0 },
+        { scale: 0.72, opacity: 0.98, x: 0, y: 0, rotate: rotation },
         {
-          scale: 1.24,
+          scale: scaleBump,
           opacity: 0,
-          x: -10,
-          y: -8,
-          duration: 0.54,
-          ease: "power2.out",
+          x: driftX,
+          y: driftY,
+          duration: 1,
+          ease: "sine.out",
           onComplete: () => wave.remove(),
         }
       );
 
+      const maxDist = 240;
+      distortableRef.current.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = cx - e.clientX;
+        const dy = cy - e.clientY;
+        const dist = Math.hypot(dx, dy);
+        if (dist > maxDist) return;
+
+        const strength = (1 - dist / maxDist) * 18;
+        const angle = Math.atan2(dy, dx);
+        const target = {
+          x: Math.cos(angle) * strength,
+          y: Math.sin(angle) * strength,
+        };
+        const offset = { x: 0, y: 0 };
+
+        gsap.timeline({
+          onComplete: () => {
+            clickOffsetsRef.current.delete(el);
+            applyDistortion(el);
+          },
+        })
+          .to(offset, {
+            x: target.x,
+            y: target.y,
+            duration: 0.34,
+            ease: "sine.out",
+            onUpdate: () => {
+              clickOffsetsRef.current.set(el, { x: offset.x, y: offset.y });
+              applyDistortion(el);
+            },
+          })
+          .to(offset, {
+            x: 0,
+            y: 0,
+            duration: 0.9,
+            ease: "sine.inOut",
+            onUpdate: () => {
+              clickOffsetsRef.current.set(el, { x: offset.x, y: offset.y });
+              applyDistortion(el);
+            },
+          });
+      });
+
       if (cursorRef.current) {
         gsap.fromTo(
           cursorRef.current,
-          { scale: 0.92, rotate: -14 },
+          { scale: 0.92, rotate: -16 },
           {
             scale: cursorState === "DEFAULT" ? 1 : 1.08,
-            rotate: cursorState === "DEFAULT" ? 0 : -8,
+            rotate: cursorState === "DEFAULT" ? 0 : -10,
             duration: 0.34,
             ease: "power3.out",
           }
@@ -198,7 +402,7 @@ export default function Cursor() {
 
     window.addEventListener("click", handleClick);
     return () => window.removeEventListener("click", handleClick);
-  }, [mounted, cursorState]);
+  }, [applyDistortion, cursorState, mounted]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -307,22 +511,35 @@ export default function Cursor() {
           position: "fixed",
           left: "-100px",
           top: "-100px",
-          width: "28px",
-          height: "34px",
-          color: "var(--text-primary)",
-          backgroundImage: `url("data:image/svg+xml,${POINTER_SVG}")`,
-          backgroundRepeat: "no-repeat",
-          backgroundSize: "100% 100%",
-          backgroundPosition: "center",
+          width: "30px",
+          height: "36px",
+          color: "var(--text-light)",
           pointerEvents: "none",
           zIndex: 9999,
           transform: "translate(-2px, -2px)",
           transformOrigin: "4px 4px",
-          willChange: "left, top, transform, color",
-          filter: "drop-shadow(0 0 10px rgba(0, 0, 0, 0.14))",
-          transition: "color 0.24s ease",
+          willChange: "left, top, transform",
+          filter: "drop-shadow(0 0 8px rgba(0, 0, 0, 0.1))",
+          mixBlendMode: "difference",
         }}
-      />
+      >
+        <svg
+          viewBox="0 0 30 36"
+          width="30"
+          height="36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ display: "block", overflow: "visible" }}
+        >
+          <path
+            d="M2 2V31L10.2 21.2L15.3 33.2L20.1 31.1L14.9 19.8H27.8L2 2Z"
+            fill="currentColor"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinejoin="miter"
+          />
+        </svg>
+      </div>
 
       <style jsx global>{`
         @media (pointer: fine) {
