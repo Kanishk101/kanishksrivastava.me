@@ -4,10 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "@/lib/gsap";
 import { useCursor } from "@/contexts/CursorContext";
 
+const POINTER_SVG = encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 34" fill="none">
+  <path
+    d="M2 2v28.5l7.8-7.1 4.9 8.6 4.6-2.8-4.8-8.4h11.5L2 2Z"
+    fill="currentColor"
+    stroke="currentColor"
+    stroke-width="1.35"
+    stroke-linejoin="miter"
+  />
+</svg>
+`);
+
 export default function Cursor() {
   const cursorRef = useRef<HTMLDivElement>(null);
-  const followerRef = useRef<HTMLDivElement>(null);
-  const labelRef = useRef<HTMLSpanElement>(null);
   const mouseRef = useRef({ x: -100, y: -100 });
   const posRef = useRef({ x: -100, y: -100 });
   const { cursorState, setCursorState } = useCursor();
@@ -17,69 +27,112 @@ export default function Cursor() {
       window.matchMedia("(pointer: fine)").matches
   );
 
-  // Mouse tracking + lerped follower
   useEffect(() => {
     if (!mounted) return;
 
-    const updateCursorColors = (x: number, y: number) => {
+    const updateCursorColor = (x: number, y: number) => {
       const el = document.elementFromPoint(x, y);
-      if (!el) return;
+      if (!el || !cursorRef.current) return;
 
       const isDark =
         el.closest(".section-dark") !== null ||
         el.closest("[data-modal-dark]") !== null;
 
-      const lightColor = "var(--text-light)";
-      const darkColor = "var(--text-primary)";
-
-      if (cursorRef.current) {
-        cursorRef.current.style.backgroundColor = isDark
-          ? lightColor
-          : darkColor;
-      }
-      if (followerRef.current) {
-        followerRef.current.style.borderColor = isDark
-          ? lightColor
-          : darkColor;
-      }
-      if (labelRef.current) {
-        labelRef.current.style.color = isDark ? lightColor : darkColor;
-      }
+      cursorRef.current.style.color = isDark
+        ? "var(--text-light)"
+        : "var(--text-primary)";
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current = { x: e.clientX, y: e.clientY };
-      if (cursorRef.current) {
-        cursorRef.current.style.left = `${e.clientX}px`;
-        cursorRef.current.style.top = `${e.clientY}px`;
-      }
-      updateCursorColors(e.clientX, e.clientY);
+      updateCursorColor(e.clientX, e.clientY);
     };
 
-    const tickFollower = () => {
-      const lerp = 0.12;
+    const tickPointer = () => {
+      const lerp = 0.22;
       posRef.current.x += (mouseRef.current.x - posRef.current.x) * lerp;
       posRef.current.y += (mouseRef.current.y - posRef.current.y) * lerp;
 
-      if (followerRef.current) {
-        followerRef.current.style.left = `${posRef.current.x}px`;
-        followerRef.current.style.top = `${posRef.current.y}px`;
+      if (cursorRef.current) {
+        cursorRef.current.style.left = `${posRef.current.x}px`;
+        cursorRef.current.style.top = `${posRef.current.y}px`;
       }
     };
 
     window.addEventListener("mousemove", handleMouseMove);
-    gsap.ticker.add(tickFollower);
+    gsap.ticker.add(tickPointer);
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
-      gsap.ticker.remove(tickFollower);
+      gsap.ticker.remove(tickPointer);
     };
   }, [mounted]);
 
-  // ═══════════════════════════════════════════════
-  // CLICK RIPPLE EFFECT
-  // Creates an expanding ring at click position + squash-spring on cursor dot
-  // ═══════════════════════════════════════════════
+  useEffect(() => {
+    if (!mounted || !cursorRef.current) return;
+
+    const pointer = cursorRef.current;
+
+    switch (cursorState) {
+      case "DEFAULT":
+        gsap.to(pointer, {
+          scale: 1,
+          opacity: 1,
+          rotate: 0,
+          x: 0,
+          y: 0,
+          duration: 0.22,
+          ease: "power2.out",
+        });
+        break;
+
+      case "HOVER_LINK":
+        gsap.to(pointer, {
+          scale: 1.08,
+          rotate: -6,
+          x: 2,
+          y: -2,
+          duration: 0.24,
+          ease: "power2.out",
+        });
+        break;
+
+      case "HOVER_PROJECT":
+        gsap.to(pointer, {
+          scale: 1.16,
+          rotate: -8,
+          x: 3,
+          y: -3,
+          duration: 0.28,
+          ease: "back.out(1.7)",
+        });
+        break;
+
+      case "HOVER_MAGNETIC":
+        gsap.to(pointer, {
+          scale: 0.94,
+          rotate: -10,
+          duration: 0.22,
+          ease: "power2.out",
+        });
+        break;
+
+      case "JITTER": {
+        const jitterTl = gsap.timeline();
+        for (let j = 0; j < 6; j++) {
+          jitterTl.to(pointer, {
+            x: `+=${(Math.random() - 0.5) * 5}`,
+            y: `+=${(Math.random() - 0.5) * 5}`,
+            duration: 0.03,
+          });
+        }
+        jitterTl.to(pointer, { x: 0, y: 0, duration: 0.08 });
+        jitterTl.call(() => setCursorState("DEFAULT"));
+        break;
+      }
+    }
+  }, [cursorState, mounted, setCursorState]);
+
   useEffect(() => {
     if (!mounted) return;
 
@@ -89,115 +142,55 @@ export default function Cursor() {
         elUnder?.closest(".section-dark") !== null ||
         elUnder?.closest("[data-modal-dark]") !== null;
 
-      const waves = isDark
-        ? [
-            {
-              size: 132,
-              dur: 0.82,
-              delay: 0,
-              opacity: 0.92,
-              borderColor: "rgba(249, 247, 244, 0.92)",
-              glowColor: "rgba(249, 247, 244, 0.38)",
-              borderWidth: 1.8,
-            },
-            {
-              size: 236,
-              dur: 1.02,
-              delay: 0.07,
-              opacity: 0.72,
-              borderColor: "rgba(196, 185, 174, 0.95)",
-              glowColor: "rgba(196, 185, 174, 0.42)",
-              borderWidth: 1.5,
-            },
-            {
-              size: 356,
-              dur: 1.2,
-              delay: 0.12,
-              opacity: 0.52,
-              borderColor: "rgba(249, 247, 244, 0.78)",
-              glowColor: "rgba(249, 247, 244, 0.2)",
-              borderWidth: 1.2,
-            },
-          ]
-        : [
-            {
-              size: 132,
-              dur: 0.82,
-              delay: 0,
-              opacity: 0.88,
-              borderColor: "rgba(12, 12, 11, 0.88)",
-              glowColor: "rgba(12, 12, 11, 0.22)",
-              borderWidth: 1.8,
-            },
-            {
-              size: 236,
-              dur: 1.02,
-              delay: 0.07,
-              opacity: 0.7,
-              borderColor: "rgba(116, 108, 98, 0.78)",
-              glowColor: "rgba(116, 108, 98, 0.2)",
-              borderWidth: 1.45,
-            },
-            {
-              size: 356,
-              dur: 1.2,
-              delay: 0.12,
-              opacity: 0.46,
-              borderColor: "rgba(12, 12, 11, 0.62)",
-              glowColor: "rgba(12, 12, 11, 0.12)",
-              borderWidth: 1.15,
-            },
-          ];
+      const color = isDark
+        ? "rgba(249, 247, 244, 0.94)"
+        : "rgba(12, 12, 11, 0.9)";
 
-      waves.forEach(
-        ({
-          size,
-          dur,
-          delay,
-          opacity,
-          borderColor,
-          glowColor,
-          borderWidth,
-        }) => {
-          const wave = document.createElement("div");
-          wave.style.cssText = `
-            position: fixed;
-            left: ${e.clientX}px;
-            top: ${e.clientY}px;
-            width: 0px;
-            height: 0px;
-            border-radius: 50%;
-            border: ${borderWidth}px solid ${borderColor};
-            box-shadow: 0 0 0 1px ${glowColor}, 0 0 28px ${glowColor};
-            pointer-events: none;
-            z-index: 9997;
-            transform: translate(-50%, -50%);
-            opacity: ${opacity};
-          `;
-          document.body.appendChild(wave);
+      const wave = document.createElement("div");
+      wave.style.cssText = `
+        position: fixed;
+        left: ${e.clientX - 22}px;
+        top: ${e.clientY - 22}px;
+        width: 38px;
+        height: 38px;
+        pointer-events: none;
+        z-index: 9997;
+        transform-origin: 12px 12px;
+      `;
 
-          gsap.to(wave, {
-            width: size,
-            height: size,
-            opacity: 0,
-            duration: dur,
-            delay,
-            ease: "power3.out",
-            onComplete: () => wave.remove(),
-          });
+      wave.innerHTML = `
+        <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 14C12.8 11.2 16.4 9.6 20.4 9.4" stroke="${color}" stroke-width="3.2" stroke-linecap="square"/>
+          <path d="M8.6 10.2C12.7 6.3 18.1 4 24 3.9" stroke="${color}" stroke-width="2.6" stroke-linecap="square" opacity="0.86"/>
+          <path d="M7 6.2C12.7 1.4 20 -1.1 27.8 1" stroke="${color}" stroke-width="2.2" stroke-linecap="square" opacity="0.72"/>
+        </svg>
+      `;
+
+      document.body.appendChild(wave);
+
+      gsap.fromTo(
+        wave,
+        { scale: 0.72, opacity: 0.96, x: 0, y: 0 },
+        {
+          scale: 1.24,
+          opacity: 0,
+          x: -10,
+          y: -8,
+          duration: 0.54,
+          ease: "power2.out",
+          onComplete: () => wave.remove(),
         }
       );
 
-      // Subtle dot squeeze
       if (cursorRef.current) {
         gsap.fromTo(
           cursorRef.current,
-          { scaleX: 1.4, scaleY: 0.7 },
+          { scale: 0.92, rotate: -14 },
           {
-            scaleX: 1,
-            scaleY: 1,
-            duration: 0.45,
-            ease: "elastic.out(1, 0.4)",
+            scale: cursorState === "DEFAULT" ? 1 : 1.08,
+            rotate: cursorState === "DEFAULT" ? 0 : -8,
+            duration: 0.34,
+            ease: "power3.out",
           }
         );
       }
@@ -205,12 +198,8 @@ export default function Cursor() {
 
     window.addEventListener("click", handleClick);
     return () => window.removeEventListener("click", handleClick);
-  }, [mounted]);
+  }, [mounted, cursorState]);
 
-  // ═══════════════════════════════════════════════
-  // GLOBAL MAGNETIC EFFECT
-  // Applies to all [data-magnetic] elements site-wide
-  // ═══════════════════════════════════════════════
   useEffect(() => {
     if (!mounted) return;
 
@@ -257,7 +246,6 @@ export default function Cursor() {
     };
   }, [mounted]);
 
-  // Auto-detect interactive elements globally
   useEffect(() => {
     if (!mounted) return;
 
@@ -307,130 +295,34 @@ export default function Cursor() {
     };
   }, [mounted, setCursorState]);
 
-  // State-driven cursor sizing
-  useEffect(() => {
-    if (!mounted || !followerRef.current || !cursorRef.current) return;
-
-    const dot = cursorRef.current;
-    const follower = followerRef.current;
-    const label = labelRef.current;
-
-    switch (cursorState) {
-      case "DEFAULT":
-        gsap.to(dot, { opacity: 1, scale: 1, duration: 0.2 });
-        gsap.to(follower, {
-          width: 40,
-          height: 40,
-          opacity: 0.3,
-          duration: 0.3,
-          ease: "power2.out",
-        });
-        if (label) label.style.opacity = "0";
-        break;
-
-      case "HOVER_LINK":
-        gsap.to(dot, { opacity: 0.5, scale: 0.5, duration: 0.2 });
-        gsap.to(follower, {
-          width: 48,
-          height: 48,
-          opacity: 0.5,
-          duration: 0.3,
-          ease: "back.out(1.7)",
-        });
-        if (label) label.style.opacity = "0";
-        break;
-
-      case "HOVER_PROJECT":
-        gsap.to(dot, { opacity: 0, scale: 0, duration: 0.15 });
-        gsap.to(follower, {
-          width: 64,
-          height: 64,
-          opacity: 1,
-          duration: 0.35,
-          ease: "back.out(1.7)",
-        });
-        if (label) label.style.opacity = "1";
-        break;
-
-      case "HOVER_MAGNETIC":
-        gsap.to(dot, { opacity: 0, duration: 0.15 });
-        gsap.to(follower, { opacity: 0, duration: 0.15 });
-        break;
-
-      case "JITTER": {
-        const jitterTl = gsap.timeline();
-        for (let j = 0; j < 6; j++) {
-          jitterTl.to(dot, {
-            x: `+=${(Math.random() - 0.5) * 8}`,
-            y: `+=${(Math.random() - 0.5) * 8}`,
-            duration: 0.033,
-          });
-        }
-        jitterTl.to(dot, { x: 0, y: 0, duration: 0.1 });
-        jitterTl.call(() => setCursorState("DEFAULT"));
-        break;
-      }
-    }
-  }, [cursorState, mounted, setCursorState]);
-
-  // Don't render until mounted (prevents SSR hydration mismatch)
   if (!mounted) return null;
 
   return (
     <>
-      {/* Dot — instant tracking */}
       <div
         ref={cursorRef}
         id="cursor"
+        aria-hidden="true"
         style={{
           position: "fixed",
-          width: "8px",
-          height: "8px",
-          borderRadius: "50%",
-          backgroundColor: "var(--text-primary)",
+          left: "-100px",
+          top: "-100px",
+          width: "28px",
+          height: "34px",
+          color: "var(--text-primary)",
+          backgroundImage: `url("data:image/svg+xml,${POINTER_SVG}")`,
+          backgroundRepeat: "no-repeat",
+          backgroundSize: "100% 100%",
+          backgroundPosition: "center",
           pointerEvents: "none",
           zIndex: 9999,
-          transform: "translate(-50%, -50%)",
-          willChange: "left, top",
-          transition: "background-color 0.3s ease",
+          transform: "translate(-2px, -2px)",
+          transformOrigin: "4px 4px",
+          willChange: "left, top, transform, color",
+          filter: "drop-shadow(0 0 10px rgba(0, 0, 0, 0.14))",
+          transition: "color 0.24s ease",
         }}
       />
-
-      {/* Follower ring — lerped tracking */}
-      <div
-        ref={followerRef}
-        id="cursor-follower"
-        className="flex items-center justify-center"
-        style={{
-          position: "fixed",
-          width: "40px",
-          height: "40px",
-          borderRadius: "50%",
-          border: "1.5px solid var(--text-primary)",
-          backgroundColor: "transparent",
-          pointerEvents: "none",
-          zIndex: 9998,
-          transform: "translate(-50%, -50%)",
-          willChange: "left, top, width, height",
-          opacity: 0.3,
-          transition: "border-color 0.3s ease",
-        }}
-      >
-        <span
-          ref={labelRef}
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "10px",
-            letterSpacing: "0.1em",
-            color: "var(--text-primary)",
-            opacity: 0,
-            transition: "opacity 0.2s ease, color 0.3s ease",
-            whiteSpace: "nowrap",
-          }}
-        >
-          View →
-        </span>
-      </div>
 
       <style jsx global>{`
         @media (pointer: fine) {

@@ -19,17 +19,24 @@ export default function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { loaderComplete } = useLoader();
   const mobileMenuId = useId();
+  const navIsDark = isDark || activeSection === "contact";
 
   useEffect(() => {
     if (!loaderComplete) return;
 
     const darkSections = document.querySelectorAll<HTMLElement>(".section-dark");
+    const contactSection = document.querySelector<HTMLElement>("#contact");
 
     const getNavDarkState = () =>
       Array.from(darkSections).some((section) => {
         const rect = section.getBoundingClientRect();
         return rect.top < 80 && rect.bottom > 80;
-      });
+      }) ||
+      (() => {
+        if (!contactSection) return false;
+        const rect = contactSection.getBoundingClientRect();
+        return rect.top < window.innerHeight * 0.28 && rect.bottom > 80;
+      })();
 
     // Scroll background transition
     const handleScroll = () => {
@@ -99,7 +106,7 @@ export default function Nav() {
         style={{
           padding: "24px 48px",
           backgroundColor: scrolled
-            ? isDark
+            ? navIsDark
               ? "rgba(12, 12, 11, 0.85)"
               : "rgba(249, 247, 244, 0.85)"
             : "transparent",
@@ -119,7 +126,7 @@ export default function Nav() {
               fontFamily: "var(--font-display)",
               fontWeight: 300,
               fontSize: "20px",
-              color: isDark ? "var(--text-light)" : "var(--text-primary)",
+              color: navIsDark ? "var(--text-light)" : "var(--text-primary)",
               backgroundImage: "none",
               transition: "color 0.4s ease",
               letterSpacing: "0.1em",
@@ -144,7 +151,7 @@ export default function Nav() {
                   textTransform: "uppercase",
                   color:
                     activeSection === link.href.slice(1)
-                      ? isDark
+                      ? navIsDark
                         ? "var(--text-light)"
                         : "var(--text-primary)"
                       : "var(--text-secondary)",
@@ -153,7 +160,7 @@ export default function Nav() {
                   padding: "4px 0",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.color = isDark
+                  e.currentTarget.style.color = navIsDark
                     ? "var(--text-light)"
                     : "var(--text-primary)";
                 }}
@@ -198,7 +205,7 @@ export default function Nav() {
                 style={{
                   width: "20px",
                   backgroundColor:
-                    mobileOpen || isDark
+                    mobileOpen || navIsDark
                       ? "var(--text-light)"
                       : "var(--text-primary)",
                   transform:
