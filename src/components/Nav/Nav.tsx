@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useLoader } from "@/contexts/LoaderContext";
+import { ScrollTrigger } from "@/lib/gsap";
+import { getLenis } from "@/lib/lenis";
 
 const NAV_LINKS = [
   { label: "About", href: "#about" },
@@ -10,6 +12,11 @@ const NAV_LINKS = [
   { label: "Experience", href: "#experience" },
   { label: "Contact", href: "#contact" },
 ];
+
+const SECTION_PROGRESS_TARGETS: Record<string, number> = {
+  about: 0.3,
+  stack: 0.12,
+};
 
 export default function Nav() {
   const navRef = useRef<HTMLElement>(null);
@@ -88,9 +95,50 @@ export default function Nav() {
     href: string
   ) => {
     e.preventDefault();
+    const lenis = getLenis();
+    if (href === "#hero") {
+      if (lenis) {
+        lenis.scrollTo(0, { duration: 1.2 });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      setMobileOpen(false);
+      return;
+    }
+
     const target = document.querySelector(href);
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth" });
+    if (target instanceof HTMLElement) {
+      const baseY = target.getBoundingClientRect().top + window.scrollY;
+      const sectionId = href.slice(1);
+      const triggers = ScrollTrigger.getAll().filter(
+        (trigger) => trigger.trigger === target
+      );
+      const sectionProgress = SECTION_PROGRESS_TARGETS[sectionId];
+      const finalY =
+        triggers.length > 0
+          ? sectionProgress !== undefined
+            ? Math.max(
+                baseY,
+                ...triggers.map((trigger) =>
+                  trigger.start + (trigger.end - trigger.start) * sectionProgress
+                )
+              )
+            : Math.max(
+                baseY,
+                ...triggers.map((trigger) =>
+                  Math.max(baseY, trigger.end - window.innerHeight * 0.35)
+                )
+              )
+          : baseY;
+      const maxY =
+        document.documentElement.scrollHeight - window.innerHeight;
+      const destination = Math.max(0, Math.min(finalY, maxY));
+
+      if (lenis) {
+        lenis.scrollTo(destination, { duration: 1.2 });
+      } else {
+        window.scrollTo({ top: destination, behavior: "smooth" });
+      }
     }
     setMobileOpen(false);
   };

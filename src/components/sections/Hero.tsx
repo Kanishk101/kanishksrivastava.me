@@ -189,6 +189,7 @@ export default function Hero() {
         {/* Role line — appears after scroll */}
         <p
           ref={roleRef}
+          data-ripple-text
           style={{
             fontFamily: "var(--font-sans)",
             fontWeight: 400,

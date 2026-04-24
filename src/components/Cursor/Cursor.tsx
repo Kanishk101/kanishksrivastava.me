@@ -6,12 +6,6 @@ import { useCursor } from "@/contexts/CursorContext";
 
 const TEXT_ROOT_SELECTORS = [
   "nav a",
-  "main h1",
-  "main h2",
-  "main h3",
-  "main h4",
-  "main p",
-  "main blockquote",
   "[data-ripple-text]",
 ].join(", ");
 
@@ -195,6 +189,7 @@ export default function Cursor() {
 
   useEffect(() => {
     if (!mounted) return;
+    let collectScheduled = false;
 
     const collectTargets = () => {
       Array.from(
@@ -241,7 +236,12 @@ export default function Cursor() {
     window.addEventListener("resize", collectTargets);
 
     const observer = new MutationObserver(() => {
-      requestAnimationFrame(collectTargets);
+      if (collectScheduled) return;
+      collectScheduled = true;
+      requestAnimationFrame(() => {
+        collectTargets();
+        collectScheduled = false;
+      });
     });
 
     observer.observe(document.body, { childList: true, subtree: true });

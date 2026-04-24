@@ -224,6 +224,7 @@ export default function About() {
             {/* Section Label */}
             <span
               ref={labelRef}
+              data-ripple-text
               style={{
                 fontFamily: "var(--font-sans)",
                 fontWeight: 400,
@@ -241,6 +242,7 @@ export default function About() {
 
             <p
               ref={quoteRef}
+              data-ripple-text
               style={{
                 fontFamily: "var(--font-display)",
                 fontWeight: 300,
@@ -259,6 +261,7 @@ export default function About() {
             {/* Body Text Block 1 */}
             <p
               ref={body1Ref}
+              data-ripple-text
               style={{
                 fontFamily: "var(--font-body)",
                 fontWeight: 300,
@@ -279,6 +282,7 @@ export default function About() {
             {/* Body Text Block 2 */}
             <p
               ref={body2Ref}
+              data-ripple-text
               style={{
                 fontFamily: "var(--font-body)",
                 fontWeight: 300,
@@ -297,6 +301,7 @@ export default function About() {
             {/* Meta Info Row */}
             <p
               ref={metaRef}
+              data-ripple-text
               style={{
                 fontFamily: "var(--font-sans)",
                 fontWeight: 400,

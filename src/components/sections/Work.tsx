@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "@/lib/gsap";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLoader } from "@/contexts/LoaderContext";
+import { getLenis } from "@/lib/lenis";
 
 interface Project {
   id: string;
@@ -187,7 +188,9 @@ export default function Work() {
                 PROJECTS.length,
                 Math.max(0, Math.floor(self.progress * PROJECTS.length * 1.22))
               );
-              setInteractiveCount(revealCount);
+              setInteractiveCount((count) =>
+                count === revealCount ? count : revealCount
+              );
             },
           },
         });
@@ -206,7 +209,7 @@ export default function Work() {
       });
 
       mm.add("(max-width: 1023px)", () => {
-        setInteractiveCount(0);
+        setInteractiveCount((count) => (count === 0 ? count : 0));
         rowsRef.current.forEach((row, i) => {
           if (!row) return;
           gsap.fromTo(
@@ -233,7 +236,7 @@ export default function Work() {
     return () => {
       mm.revert();
       ctx.revert();
-      setInteractiveCount(0);
+      setInteractiveCount((count) => (count === 0 ? count : 0));
     };
   }, [loaderComplete]);
 
@@ -266,23 +269,16 @@ export default function Work() {
     if (selectedProject) {
       document.body.style.overflow = "hidden";
       document.documentElement.style.overflow = "hidden";
-      // Stop Lenis so it doesn't scroll underneath the modal
-      import("@/lib/lenis").then(({ getLenis }) => {
-        getLenis()?.stop();
-      });
+      getLenis()?.stop();
     } else {
       document.body.style.overflow = "";
       document.documentElement.style.overflow = "";
-      import("@/lib/lenis").then(({ getLenis }) => {
-        getLenis()?.start();
-      });
+      getLenis()?.start();
     }
     return () => {
       document.body.style.overflow = "";
       document.documentElement.style.overflow = "";
-      import("@/lib/lenis").then(({ getLenis }) => {
-        getLenis()?.start();
-      });
+      getLenis()?.start();
     };
   }, [selectedProject]);
 
@@ -362,6 +358,7 @@ export default function Work() {
         >
           {/* Section Label */}
           <span
+            data-ripple-text
             style={{
               fontFamily: "var(--font-sans)",
               fontWeight: 400,
@@ -442,6 +439,7 @@ export default function Work() {
                   >
                     {/* Index */}
                     <span
+                      data-ripple-text
                       style={{
                         fontFamily: "var(--font-sans)",
                         fontWeight: 700,
@@ -454,6 +452,7 @@ export default function Work() {
 
                     {/* Name with hover underline */}
                     <span
+                      data-ripple-text
                       className="relative inline-block"
                       style={{
                         fontFamily: "var(--font-display)",
@@ -484,6 +483,7 @@ export default function Work() {
 
                     {/* Type */}
                     <span
+                      data-ripple-text
                       className="hidden sm:block"
                       style={{
                         fontFamily: "var(--font-sans)",
@@ -499,6 +499,7 @@ export default function Work() {
 
                     {/* Year */}
                     <span
+                      data-ripple-text
                       style={{
                         fontFamily: "var(--font-sans)",
                         fontWeight: 400,
@@ -528,6 +529,7 @@ export default function Work() {
                   >
                     <div className="marquee-track">
                       <span
+                        data-ripple-text
                         style={{
                           fontFamily: "var(--font-sans)",
                           fontWeight: 800,
@@ -787,6 +789,7 @@ export default function Work() {
                 {/* Left — Description & Stack */}
                 <div className="flex-1">
                   <p
+                    data-ripple-text
                     style={{
                       fontFamily: "var(--font-body)",
                       fontWeight: 300,
@@ -799,6 +802,7 @@ export default function Work() {
                     {selectedProject.description}
                   </p>
                   <p
+                    data-ripple-text
                     style={{
                       fontFamily: "var(--font-body)",
                       fontWeight: 300,
@@ -813,6 +817,7 @@ export default function Work() {
 
                   {/* Tech Stack Label */}
                   <span
+                    data-ripple-text
                     style={{
                       fontFamily: "var(--font-sans)",
                       fontWeight: 700,
