@@ -4,59 +4,88 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { gsap } from "@/lib/gsap";
 import { useCursor } from "@/contexts/CursorContext";
 
-const DISTORT_SELECTORS = [
+const TEXT_ROOT_SELECTORS = [
   "nav a",
   "main h1",
   "main h2",
   "main h3",
+  "main h4",
   "main p",
-  "main a",
-  "main button",
-  "main span[data-link-label]",
+  "main blockquote",
+  "[data-ripple-text]",
 ].join(", ");
 
-const buildWavePaths = () => {
-  const arc = Math.random() * 4 + 2;
-  const drift = Math.random() * 4 + 1;
-  const spread = Math.random() * 3 + 1;
+const SURFACE_SELECTORS = [
+  ".stack-card",
+  ".skill-pill",
+  ".project-row",
+  "[data-ripple-reactive]",
+].join(", ");
+
+const SCOPE_SELECTOR = "[data-section], [data-modal-dark], nav";
+const SOURCE_X = 24;
+const SOURCE_Y = 54;
+const WAVE_VIEWBOX = { width: 116, height: 74 };
+
+const createWaveVariant = (index: number) => {
+  const spread = 8 + Math.random() * 12;
+  const lift = 4 + Math.random() * 7;
+  const skew = Math.random() * 4 - 2;
+  const start = SOURCE_X - (10 + Math.random() * 4);
 
   const variants = [
-    [
-      `M5 27 Q16 ${22 - arc} 32 ${22 - drift}`,
-      `M4 18 Q17 ${10 - arc} 38 ${10 - drift + spread}`,
-      `M3 9 Q18 ${-1 - arc} 44 ${0 - drift + spread}`,
+    () => [
+      `M${start} ${SOURCE_Y} Q${SOURCE_X + 7} ${48 - lift} ${SOURCE_X + 24 + spread} ${41 - lift * 0.45 + skew}`,
+      `M${start - 1} ${SOURCE_Y - 8} Q${SOURCE_X + 8} ${35 - lift * 0.95} ${SOURCE_X + 36 + spread} ${27 - lift + skew}`,
+      `M${start - 2} ${SOURCE_Y - 16} Q${SOURCE_X + 9} ${21 - lift * 1.15} ${SOURCE_X + 48 + spread} ${12 - lift + skew}`,
     ],
-    [
-      `M5 27 C14 ${23 - arc}, 22 ${19 - arc}, 33 ${20 - drift}`,
-      `M4 18 C15 ${11 - arc}, 24 ${7 - arc}, 39 ${8 - drift + spread}`,
-      `M3 9 C16 ${0 - arc}, 26 ${-3 - arc}, 45 ${-1 - drift + spread}`,
+    () => [
+      `M${start} ${SOURCE_Y} C${SOURCE_X + 2} ${49}, ${SOURCE_X + 10 + spread * 0.3} ${45 - lift * 0.55}, ${SOURCE_X + 26 + spread} ${37 - lift * 0.5}`,
+      `M${start - 1} ${SOURCE_Y - 8} C${SOURCE_X + 3} ${38}, ${SOURCE_X + 14 + spread * 0.35} ${31 - lift}, ${SOURCE_X + 40 + spread} ${22 - lift}`,
+      `M${start - 2} ${SOURCE_Y - 16} C${SOURCE_X + 4} ${24}, ${SOURCE_X + 18 + spread * 0.4} ${17 - lift * 1.08}, ${SOURCE_X + 52 + spread} ${10 - lift}`,
     ],
-    [
-      `M5 27 Q15 ${23 - arc} 22 ${21 - arc} T34 ${21 - drift}`,
-      `M4 18 Q16 ${11 - arc} 24 ${8 - arc} T40 ${8 - drift + spread}`,
-      `M3 9 Q17 ${0 - arc} 27 ${-2 - arc} T46 ${0 - drift + spread}`,
+    () => [
+      `M${start} ${SOURCE_Y} L${SOURCE_X + 2} ${50 - skew} L${SOURCE_X + 24 + spread} ${38 - lift * 0.42}`,
+      `M${start - 1} ${SOURCE_Y - 8} L${SOURCE_X + 4} ${39 - skew} L${SOURCE_X + 38 + spread} ${24 - lift}`,
+      `M${start - 2} ${SOURCE_Y - 16} L${SOURCE_X + 6} ${27 - skew} L${SOURCE_X + 50 + spread} ${12 - lift}`,
     ],
-    [
-      `M6 27 Q17 ${21 - arc} 30 ${24 - drift}`,
-      `M5 18 Q18 ${10 - arc} 37 ${12 - drift + spread}`,
-      `M4 9 Q19 ${-2 - arc} 43 ${2 - drift + spread}`,
+    () => [
+      `M${start} ${SOURCE_Y} Q${SOURCE_X + 4} ${47 - lift * 0.35} ${SOURCE_X + 16 + spread * 0.42} ${44 - skew} T${SOURCE_X + 30 + spread} ${35 - lift * 0.5}`,
+      `M${start - 1} ${SOURCE_Y - 8} Q${SOURCE_X + 6} ${35 - lift * 0.78} ${SOURCE_X + 20 + spread * 0.48} ${30 - skew} T${SOURCE_X + 44 + spread} ${20 - lift}`,
+      `M${start - 2} ${SOURCE_Y - 16} Q${SOURCE_X + 8} ${21 - lift} ${SOURCE_X + 24 + spread * 0.56} ${17 - skew} T${SOURCE_X + 56 + spread} ${9 - lift}`,
     ],
-  ] as const;
+    () => [
+      `M${start} ${SOURCE_Y} L${SOURCE_X + 1} ${50 - skew} Q${SOURCE_X + 12 + spread * 0.22} ${46 - lift * 0.45} ${SOURCE_X + 29 + spread} ${39 - lift * 0.45}`,
+      `M${start - 1} ${SOURCE_Y - 8} L${SOURCE_X + 3} ${39 - skew} Q${SOURCE_X + 16 + spread * 0.24} ${33 - lift * 0.88} ${SOURCE_X + 42 + spread} ${23 - lift}`,
+      `M${start - 2} ${SOURCE_Y - 16} L${SOURCE_X + 5} ${27 - skew} Q${SOURCE_X + 20 + spread * 0.26} ${19 - lift} ${SOURCE_X + 54 + spread} ${11 - lift}`,
+    ],
+    () => [
+      `M${start} ${SOURCE_Y} C${SOURCE_X + 1} ${47 - skew}, ${SOURCE_X + 14 + spread * 0.25} ${47 - lift * 0.2}, ${SOURCE_X + 29 + spread} ${36 - lift * 0.54}`,
+      `M${start - 1} ${SOURCE_Y - 8} C${SOURCE_X + 2} ${35 - skew}, ${SOURCE_X + 18 + spread * 0.3} ${31 - lift * 0.7}, ${SOURCE_X + 43 + spread} ${21 - lift}`,
+      `M${start - 2} ${SOURCE_Y - 16} C${SOURCE_X + 3} ${22 - skew}, ${SOURCE_X + 22 + spread * 0.34} ${16 - lift}, ${SOURCE_X + 55 + spread} ${10 - lift}`,
+    ],
+  ];
 
-  return variants[Math.floor(Math.random() * variants.length)];
+  return variants[index % variants.length]();
 };
+
+type Offset = { x: number; y: number };
 
 export default function Cursor() {
   const cursorRef = useRef<HTMLDivElement>(null);
   const mouseRef = useRef({ x: -100, y: -100 });
   const posRef = useRef({ x: -100, y: -100 });
-  const hoverOffsetsRef = useRef(
-    new WeakMap<HTMLElement, { x: number; y: number }>()
-  );
-  const clickOffsetsRef = useRef(
-    new WeakMap<HTMLElement, { x: number; y: number }>()
-  );
-  const distortableRef = useRef<HTMLElement[]>([]);
+  const waveVariantRef = useRef(0);
+  const rippleLockUntilRef = useRef(0);
+  const textTargetsRef = useRef<HTMLElement[]>([]);
+  const surfaceTargetsRef = useRef<HTMLElement[]>([]);
+  const scopedTextTargetsRef = useRef(new Map<HTMLElement, HTMLElement[]>());
+  const scopedSurfaceTargetsRef = useRef(new Map<HTMLElement, HTMLElement[]>());
+  const activeScopeRef = useRef<HTMLElement | null>(null);
+  const activeTextRef = useRef<HTMLElement[]>([]);
+  const activeSurfacesRef = useRef<HTMLElement[]>([]);
+  const hoverOffsetsRef = useRef(new WeakMap<HTMLElement, Offset>());
+  const clickOffsetsRef = useRef(new WeakMap<HTMLElement, Offset>());
   const { cursorState, setCursorState } = useCursor();
   const [mounted] = useState(
     () =>
@@ -64,28 +93,59 @@ export default function Cursor() {
       window.matchMedia("(pointer: fine)").matches
   );
 
-  const applyDistortion = useCallback((el: HTMLElement) => {
+  const applyOffset = useCallback((el: HTMLElement) => {
     const hover = hoverOffsetsRef.current.get(el) || { x: 0, y: 0 };
     const click = clickOffsetsRef.current.get(el) || { x: 0, y: 0 };
-    el.style.transform = `translate(${hover.x + click.x}px, ${hover.y + click.y}px)`;
+    gsap.set(el, {
+      x: hover.x + click.x,
+      y: hover.y + click.y,
+      force3D: true,
+    });
   }, []);
 
+  const clearHoverOffsets = useCallback(
+    (targets: HTMLElement[]) => {
+      targets.forEach((el) => {
+        hoverOffsetsRef.current.set(el, { x: 0, y: 0 });
+        applyOffset(el);
+      });
+    },
+    [applyOffset]
+  );
+
   const splitTextNode = useCallback((node: Text) => {
-    if (!node.textContent || !node.parentElement) return;
-    if (!node.textContent.trim()) return;
+    if (!node.textContent || !node.parentElement || !node.textContent.trim()) {
+      return;
+    }
 
     const parent = node.parentElement;
     const frag = document.createDocumentFragment();
+    const parts = node.textContent.match(/\S+|\s+/g) ?? [];
 
-    node.textContent.split("").forEach((char) => {
-      const span = document.createElement("span");
-      span.className = "cursor-distort-char";
-      span.setAttribute("aria-hidden", "true");
-      span.style.display = "inline-block";
-      span.style.willChange = "transform";
-      span.style.transition = "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)";
-      span.textContent = char === " " ? "\u00A0" : char;
-      frag.appendChild(span);
+    parts.forEach((part) => {
+      if (/^\s+$/.test(part)) {
+        frag.appendChild(document.createTextNode(part));
+        return;
+      }
+
+      const word = document.createElement("span");
+      word.setAttribute("aria-hidden", "true");
+      word.style.display = "inline-block";
+      word.style.whiteSpace = "nowrap";
+
+      part.split("").forEach((char) => {
+        const span = document.createElement("span");
+        span.className = "cursor-distort-char";
+        span.setAttribute("aria-hidden", "true");
+        span.style.display = "inline-block";
+        span.style.willChange = "transform";
+        span.style.transition =
+          "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)";
+        span.textContent = char;
+        word.appendChild(span);
+      });
+
+      frag.appendChild(word);
     });
 
     parent.insertBefore(frag, node);
@@ -97,7 +157,8 @@ export default function Cursor() {
       if (root.dataset.cursorSplit === "true") return;
       if (root.closest("#cursor")) return;
       if (root.classList.contains("hero-char")) return;
-      if (root.querySelector("input, textarea, select, svg")) return;
+      if (!root.matches("[data-ripple-text]") && root.children.length > 0) return;
+      if (root.querySelector("svg, input, textarea, select, img")) return;
 
       const textNodes: Text[] = [];
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -106,12 +167,9 @@ export default function Cursor() {
           if (!node.parentElement) return NodeFilter.FILTER_REJECT;
           if (
             node.parentElement.closest(
-              "svg, script, style, input, textarea, select"
+              "svg, script, style, input, textarea, select, img"
             )
           ) {
-            return NodeFilter.FILTER_REJECT;
-          }
-          if (node.parentElement.classList.contains("hero-char")) {
             return NodeFilter.FILTER_REJECT;
           }
           return NodeFilter.FILTER_ACCEPT;
@@ -122,10 +180,7 @@ export default function Cursor() {
         textNodes.push(walker.currentNode as Text);
       }
 
-      if (textNodes.length === 0) {
-        root.dataset.cursorSplit = "true";
-        return;
-      }
+      if (textNodes.length === 0) return;
 
       if (!root.getAttribute("aria-label")) {
         const label = root.textContent?.replace(/\s+/g, " ").trim();
@@ -141,29 +196,59 @@ export default function Cursor() {
   useEffect(() => {
     if (!mounted) return;
 
-    const collectDistortables = () => {
-      Array.from(document.querySelectorAll<HTMLElement>(DISTORT_SELECTORS)).forEach(
-        (el) => splitElementText(el)
-      );
+    const collectTargets = () => {
+      Array.from(
+        document.querySelectorAll<HTMLElement>(TEXT_ROOT_SELECTORS)
+      ).forEach((el) => splitElementText(el));
 
-      distortableRef.current = Array.from(
+      const textTargets = Array.from(
         document.querySelectorAll<HTMLElement>(".hero-char, .cursor-distort-char")
       ).filter((el) => !el.closest("#cursor"));
 
-      distortableRef.current.forEach((el) => {
+      const surfaceTargets = Array.from(
+        document.querySelectorAll<HTMLElement>(SURFACE_SELECTORS)
+      ).filter((el) => !el.closest("#cursor"));
+
+      textTargets.forEach((el) => {
         el.style.willChange = "transform";
-        if (!el.classList.contains("hero-char")) {
-          el.style.transition =
-            "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)";
-        }
+        el.style.transition = "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)";
       });
+
+      textTargetsRef.current = textTargets;
+      surfaceTargetsRef.current = surfaceTargets;
+
+      const scopedText = new Map<HTMLElement, HTMLElement[]>();
+      textTargets.forEach((el) => {
+        const scope = el.closest<HTMLElement>(SCOPE_SELECTOR) ?? document.body;
+        const existing = scopedText.get(scope) ?? [];
+        existing.push(el);
+        scopedText.set(scope, existing);
+      });
+
+      const scopedSurfaces = new Map<HTMLElement, HTMLElement[]>();
+      surfaceTargets.forEach((el) => {
+        const scope = el.closest<HTMLElement>(SCOPE_SELECTOR) ?? document.body;
+        const existing = scopedSurfaces.get(scope) ?? [];
+        existing.push(el);
+        scopedSurfaces.set(scope, existing);
+      });
+
+      scopedTextTargetsRef.current = scopedText;
+      scopedSurfaceTargetsRef.current = scopedSurfaces;
     };
 
-    collectDistortables();
-    window.addEventListener("resize", collectDistortables);
+    collectTargets();
+    window.addEventListener("resize", collectTargets);
+
+    const observer = new MutationObserver(() => {
+      requestAnimationFrame(collectTargets);
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
-      window.removeEventListener("resize", collectDistortables);
+      window.removeEventListener("resize", collectTargets);
+      observer.disconnect();
     };
   }, [mounted, splitElementText]);
 
@@ -184,10 +269,40 @@ export default function Cursor() {
         cursorRef.current.style.top = `${posRef.current.y}px`;
       }
 
+      const hovered = document.elementFromPoint(
+        mouseRef.current.x,
+        mouseRef.current.y
+      ) as HTMLElement | null;
+      const nextScope =
+        hovered?.closest<HTMLElement>(SCOPE_SELECTOR) ?? document.body;
+
+      if (activeScopeRef.current !== nextScope) {
+        clearHoverOffsets(activeTextRef.current);
+        activeScopeRef.current = nextScope;
+        activeTextRef.current = scopedTextTargetsRef.current.get(nextScope) ?? [];
+        activeSurfacesRef.current =
+          scopedSurfaceTargetsRef.current.get(nextScope) ?? [];
+      }
+
+      if (performance.now() < rippleLockUntilRef.current) {
+        clearHoverOffsets(activeTextRef.current);
+        return;
+      }
+
       const maxDist = 200;
-      distortableRef.current.forEach((el) => {
+      activeTextRef.current.forEach((el) => {
         const rect = el.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return;
+        if (
+          rect.bottom < -40 ||
+          rect.top > window.innerHeight + 40 ||
+          rect.right < -40 ||
+          rect.left > window.innerWidth + 40
+        ) {
+          hoverOffsetsRef.current.set(el, { x: 0, y: 0 });
+          applyOffset(el);
+          return;
+        }
 
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
@@ -205,18 +320,18 @@ export default function Cursor() {
           hoverOffsetsRef.current.set(el, { x: 0, y: 0 });
         }
 
-        applyDistortion(el);
+        applyOffset(el);
       });
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
     gsap.ticker.add(tickPointer);
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       gsap.ticker.remove(tickPointer);
     };
-  }, [applyDistortion, mounted]);
+  }, [applyOffset, clearHoverOffsets, mounted]);
 
   useEffect(() => {
     if (!mounted || !cursorRef.current) return;
@@ -235,7 +350,6 @@ export default function Cursor() {
           ease: "power2.out",
         });
         break;
-
       case "HOVER_LINK":
         gsap.to(pointer, {
           scale: 1.06,
@@ -246,7 +360,6 @@ export default function Cursor() {
           ease: "power2.out",
         });
         break;
-
       case "HOVER_PROJECT":
         gsap.to(pointer, {
           scale: 1.14,
@@ -257,7 +370,6 @@ export default function Cursor() {
           ease: "back.out(1.7)",
         });
         break;
-
       case "HOVER_MAGNETIC":
         gsap.to(pointer, {
           scale: 0.94,
@@ -266,7 +378,6 @@ export default function Cursor() {
           ease: "power2.out",
         });
         break;
-
       case "JITTER": {
         const jitterTl = gsap.timeline();
         for (let j = 0; j < 6; j++) {
@@ -287,38 +398,39 @@ export default function Cursor() {
     if (!mounted) return;
 
     const handleClick = (e: MouseEvent) => {
-      const elUnder = document.elementFromPoint(e.clientX, e.clientY);
+      const target = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
       const isDark =
-        elUnder?.closest(".section-dark") !== null ||
-        elUnder?.closest("[data-modal-dark]") !== null;
+        target?.closest(".section-dark") !== null ||
+        target?.closest("[data-modal-dark]") !== null;
+      const rippleDuration = 1060;
 
       const color = isDark
         ? "rgba(249, 247, 244, 0.98)"
         : "rgba(12, 12, 11, 0.94)";
+      rippleLockUntilRef.current = performance.now() + rippleDuration;
+      clearHoverOffsets(activeTextRef.current);
 
-      const variant = buildWavePaths();
-      const rotation = -16 + Math.random() * 32;
-      const driftX = 4 + Math.random() * 10;
-      const driftY = -4 - Math.random() * 10;
-      const scaleBump = 1.26 + Math.random() * 0.18;
+      const variant = createWaveVariant(waveVariantRef.current);
+      waveVariantRef.current += 1;
 
       const wave = document.createElement("div");
       wave.style.cssText = `
         position: fixed;
-        left: ${e.clientX + 6}px;
-        top: ${e.clientY - 28}px;
-        width: 58px;
-        height: 44px;
+        left: ${e.clientX - SOURCE_X}px;
+        top: ${e.clientY - SOURCE_Y}px;
+        width: ${WAVE_VIEWBOX.width}px;
+        height: ${WAVE_VIEWBOX.height}px;
         pointer-events: none;
         z-index: 9997;
-        transform-origin: 6px 30px;
+        overflow: visible;
+        transform-origin: ${SOURCE_X}px ${SOURCE_Y}px;
       `;
 
       wave.innerHTML = `
-        <svg width="58" height="44" viewBox="0 0 58 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="${variant[0]}" stroke="${color}" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="${variant[1]}" stroke="${color}" stroke-width="3.9" stroke-linecap="round" stroke-linejoin="round" opacity="0.84"/>
-          <path d="${variant[2]}" stroke="${color}" stroke-width="3.1" stroke-linecap="round" stroke-linejoin="round" opacity="0.68"/>
+        <svg width="${WAVE_VIEWBOX.width}" height="${WAVE_VIEWBOX.height}" viewBox="0 0 ${WAVE_VIEWBOX.width} ${WAVE_VIEWBOX.height}" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">
+          <path d="${variant[0]}" stroke="${color}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="${variant[1]}" stroke="${color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.84"/>
+          <path d="${variant[2]}" stroke="${color}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.68"/>
         </svg>
       `;
 
@@ -326,65 +438,94 @@ export default function Cursor() {
 
       gsap.fromTo(
         wave,
-        { scale: 0.72, opacity: 0.98, x: 0, y: 0, rotate: rotation },
         {
-          scale: scaleBump,
+          scale: 0.76,
+          opacity: 0.98,
+          rotate: -10 + Math.random() * 20,
+          x: -1 + Math.random() * 2,
+          y: 0,
+        },
+        {
+          scale: 1.38 + Math.random() * 0.18,
           opacity: 0,
-          x: driftX,
-          y: driftY,
-          duration: 1,
-          ease: "sine.out",
+          x: -1 + Math.random() * 3,
+          y: -7 - Math.random() * 5,
+          duration: rippleDuration / 1000,
+          ease: "power2.out",
           onComplete: () => wave.remove(),
         }
       );
 
-      const maxDist = 240;
-      distortableRef.current.forEach((el) => {
+      const scope = target?.closest<HTMLElement>(SCOPE_SELECTOR) ?? document.body;
+      const textTargets = scopedTextTargetsRef.current.get(scope) ?? [];
+      const surfaceTargets = scopedSurfaceTargetsRef.current.get(scope) ?? [];
+      clearHoverOffsets(textTargets);
+
+      const animateTarget = (
+        el: HTMLElement,
+        magnitude: number,
+        durationOut: number,
+        durationIn: number
+      ) => {
         const rect = el.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return;
+        if (
+          rect.bottom < -60 ||
+          rect.top > window.innerHeight + 60 ||
+          rect.right < -60 ||
+          rect.left > window.innerWidth + 60
+        ) {
+          return;
+        }
 
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
+        const cx = Math.max(rect.left, Math.min(e.clientX, rect.right));
+        const cy = Math.max(rect.top, Math.min(e.clientY, rect.bottom));
         const dx = cx - e.clientX;
         const dy = cy - e.clientY;
         const dist = Math.hypot(dx, dy);
+        const maxDist = 240;
         if (dist > maxDist) return;
 
-        const strength = (1 - dist / maxDist) * 18;
+        const strength = (1 - dist / maxDist) * magnitude;
         const angle = Math.atan2(dy, dx);
-        const target = {
+        const targetOffset = {
           x: Math.cos(angle) * strength,
           y: Math.sin(angle) * strength,
         };
-        const offset = { x: 0, y: 0 };
+        const current = clickOffsetsRef.current.get(el) || { x: 0, y: 0 };
+        const offset = { x: current.x, y: current.y };
 
+        gsap.killTweensOf(offset);
         gsap.timeline({
           onComplete: () => {
             clickOffsetsRef.current.delete(el);
-            applyDistortion(el);
+            applyOffset(el);
           },
         })
           .to(offset, {
-            x: target.x,
-            y: target.y,
-            duration: 0.34,
+            x: targetOffset.x,
+            y: targetOffset.y,
+            duration: durationOut,
             ease: "sine.out",
             onUpdate: () => {
               clickOffsetsRef.current.set(el, { x: offset.x, y: offset.y });
-              applyDistortion(el);
+              applyOffset(el);
             },
           })
           .to(offset, {
             x: 0,
             y: 0,
-            duration: 0.9,
+            duration: durationIn,
             ease: "sine.inOut",
             onUpdate: () => {
               clickOffsetsRef.current.set(el, { x: offset.x, y: offset.y });
-              applyDistortion(el);
+              applyOffset(el);
             },
           });
-      });
+      };
+
+      textTargets.forEach((el) => animateTarget(el, 16, 0.36, 1.02));
+      surfaceTargets.forEach((el) => animateTarget(el, 16, 0.36, 1.02));
 
       if (cursorRef.current) {
         gsap.fromTo(
@@ -402,7 +543,7 @@ export default function Cursor() {
 
     window.addEventListener("click", handleClick);
     return () => window.removeEventListener("click", handleClick);
-  }, [applyDistortion, cursorState, mounted]);
+  }, [applyOffset, clearHoverOffsets, cursorState, mounted]);
 
   useEffect(() => {
     if (!mounted) return;

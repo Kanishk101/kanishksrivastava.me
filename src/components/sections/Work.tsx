@@ -648,9 +648,10 @@ export default function Work() {
               ref={closeButtonRef}
               onClick={() => setSelectedProject(null)}
               className="fixed z-[101] group"
+              data-ripple-reactive
               style={{
                 top: "24px",
-                right: "48px",
+                right: "clamp(18px, 4vw, 48px)",
                 background: "none",
                 border: "none",
                 padding: "12px",
@@ -680,8 +681,9 @@ export default function Work() {
             </button>
 
             <div
+              data-ripple-reactive
               style={{
-                padding: "80px 48px 120px",
+                padding: "clamp(72px, 10vw, 80px) clamp(20px, 4vw, 48px) 120px",
                 maxWidth: "1200px",
                 margin: "0 auto",
               }}
@@ -694,6 +696,7 @@ export default function Work() {
                 style={{ marginBottom: "48px" }}
               >
                 <span
+                  data-ripple-text
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: "13px",
@@ -705,6 +708,7 @@ export default function Work() {
                 </span>
                 <h2
                   id={`project-title-${selectedProject.id}`}
+                  data-ripple-text
                   style={{
                     fontFamily: "var(--font-display)",
                     fontWeight: 300,
@@ -717,6 +721,7 @@ export default function Work() {
                   {selectedProject.name}
                 </h2>
                 <span
+                  data-ripple-text
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: "11px",
@@ -736,6 +741,7 @@ export default function Work() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
+                data-ripple-reactive
                 style={{
                   width: "100%",
                   height: "50vh",
@@ -758,6 +764,7 @@ export default function Work() {
                   }}
                 />
                 <span
+                  data-ripple-text
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: "12px",
@@ -825,6 +832,7 @@ export default function Work() {
                     {selectedProject.stack.map((tech) => (
                       <span
                         key={tech}
+                        data-ripple-reactive
                         style={{
                           fontFamily: "var(--font-sans)",
                           fontSize: "10px",
@@ -859,6 +867,7 @@ export default function Work() {
                   style={{ minWidth: "180px" }}
                 >
                   <span
+                    data-ripple-text
                     style={{
                       fontFamily: "var(--font-sans)",
                       fontWeight: 700,
@@ -876,6 +885,7 @@ export default function Work() {
                       href={selectedProject.live}
                       target="_blank"
                       rel="noopener noreferrer"
+                      data-ripple-text
                       style={{
                         fontFamily: "var(--font-sans)",
                         fontSize: "16px",
@@ -900,6 +910,7 @@ export default function Work() {
                     </a>
                   ) : (
                     <span
+                      data-ripple-text
                       aria-disabled="true"
                       title="Replace the placeholder URL to enable this link."
                       style={{
@@ -924,6 +935,7 @@ export default function Work() {
                       href={selectedProject.github}
                       target="_blank"
                       rel="noopener noreferrer"
+                      data-ripple-text
                       style={{
                         fontFamily: "var(--font-sans)",
                         fontSize: "16px",
@@ -948,6 +960,7 @@ export default function Work() {
                     </a>
                   ) : (
                     <span
+                      data-ripple-text
                       aria-disabled="true"
                       title="Replace the placeholder URL to enable this link."
                       style={{

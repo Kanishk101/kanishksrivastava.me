@@ -315,6 +315,7 @@ export default function About() {
           <div className="w-full lg:w-[55%] order-1 lg:order-2 flex justify-end">
             <div
               ref={portraitRef}
+              data-ripple-reactive
               className="relative w-full group"
               style={{
                 aspectRatio: "3/4",

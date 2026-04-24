@@ -203,8 +203,7 @@ export default function Experience() {
       ref={sectionRef}
       id="experience"
       data-section="experience"
-      className="section section-light"
-      style={{ minHeight: "280vh" }}
+      className="section section-light lg:min-h-[280vh]"
     >
       <div
         ref={pinRef}
@@ -220,6 +219,7 @@ export default function Experience() {
       >
         <span
           ref={labelRef}
+          data-ripple-text
           style={{
             fontFamily: "var(--font-sans)",
             fontWeight: 400,
@@ -246,6 +246,7 @@ export default function Experience() {
           <div style={{ position: "relative", minHeight: "820px" }}>
             <div
               ref={lineRef}
+              data-ripple-reactive
               style={{
                 position: "absolute",
                 left: "34px",
@@ -263,6 +264,7 @@ export default function Experience() {
                 ref={(el) => {
                   nodesRef.current[index] = el;
                 }}
+                data-ripple-reactive
                 style={{
                   position: "absolute",
                   left: "28px",
@@ -291,6 +293,7 @@ export default function Experience() {
                 style={{ opacity: 0 }}
               >
                 <span
+                  data-ripple-text
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontWeight: 400,
@@ -318,6 +321,7 @@ export default function Experience() {
                     {item.role}
                   </h3>
                   <span
+                    data-ripple-text
                     style={{
                       fontFamily: "var(--font-display)",
                       fontWeight: 300,
@@ -330,6 +334,7 @@ export default function Experience() {
                   </span>
                 </div>
                   <p
+                    data-ripple-text
                     style={{
                       fontFamily: "var(--font-body)",
                       fontWeight: 300,

@@ -106,8 +106,7 @@ export default function Stack() {
       ref={sectionRef}
       id="stack"
       data-section="stack"
-      className="section section-light"
-      style={{ height: "500vh" }}
+      className="section section-light lg:h-[500vh]"
     >
       <div
         aria-hidden="true"
@@ -124,6 +123,7 @@ export default function Stack() {
       />
       <div
         ref={pinContainerRef}
+        data-stack-pin
         style={{
           height: "100vh",
           display: "flex",
@@ -136,6 +136,7 @@ export default function Stack() {
         {/* Section Label */}
         <span
           ref={labelRef}
+          data-ripple-text
           style={{
             fontFamily: "var(--font-sans)",
             fontWeight: 400,
@@ -151,6 +152,7 @@ export default function Stack() {
         </span>
 
         <p
+          data-ripple-text
           style={{
             fontFamily: "var(--font-body)",
             fontWeight: 300,
@@ -167,9 +169,9 @@ export default function Stack() {
         {/* Horizontal Strip */}
         <div
           ref={stripRef}
+          className="flex flex-col lg:flex-row"
           style={{
-            display: "flex",
-            gap: "40px",
+            gap: "56px",
             willChange: "transform",
           }}
         >
@@ -177,14 +179,15 @@ export default function Stack() {
             <div
               key={group.label}
               className="stack-card"
+              data-ripple-reactive
               style={{
-                width: "380px",
-                minWidth: "380px",
-                height: "360px",
+                width: "min(456px, calc(100vw - 48px))",
+                minWidth: "min(456px, calc(100vw - 48px))",
+                height: "clamp(360px, 82vw, 456px)",
                 background:
                   "linear-gradient(180deg, rgba(249, 247, 244, 0.84), rgba(240, 237, 232, 0.96))",
                 border: "1px solid rgba(196, 185, 174, 0.34)",
-                padding: "36px",
+                padding: "clamp(32px, 6vw, 72px)",
                 display: "flex",
                 flexDirection: "column",
                 boxShadow:
@@ -207,6 +210,7 @@ export default function Stack() {
             >
               {/* Group Label */}
               <h3
+                data-ripple-text
                 style={{
                   fontFamily: "var(--font-sans)",
                   fontWeight: 800,
@@ -215,37 +219,39 @@ export default function Stack() {
                   textTransform: "uppercase",
                   color: "var(--text-muted)",
                   borderBottom: "1px solid var(--grid-line)",
-                  paddingBottom: "14px",
-                  marginBottom: "24px",
+                  paddingBottom: "18px",
+                  marginBottom: "34px",
                 }}
               >
                 {group.label}
               </h3>
 
               <span
+                data-ripple-text
                 style={{
                   fontFamily: "var(--font-display)",
                   fontStyle: "italic",
-                  fontSize: "28px",
+                  fontSize: "34px",
                   color: "rgba(107, 103, 96, 0.58)",
-                  marginBottom: "22px",
+                  marginBottom: "34px",
                 }}
               >
                 0{SKILL_GROUPS.indexOf(group) + 1}
               </span>
 
               {/* Skill Pills */}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3">
                 {group.skills.map((skill) => (
                   <span
                     key={skill}
                     className="skill-pill"
+                    data-ripple-reactive
                     style={{
                       fontFamily: "var(--font-body)",
                       fontWeight: 300,
-                      fontSize: "14px",
+                      fontSize: "15px",
                       letterSpacing: "0.05em",
-                      padding: "8px 18px",
+                      padding: "11px 22px",
                       border: "1px solid var(--grid-line)",
                       backgroundColor: "transparent",
                       color: "var(--text-primary)",

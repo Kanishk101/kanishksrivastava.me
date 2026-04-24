@@ -11,8 +11,6 @@ export default function Hero() {
   const roleRef = useRef<HTMLParagraphElement>(null);
   const scrollIndicatorRef = useRef<HTMLDivElement>(null);
   const charsRef = useRef<(HTMLSpanElement | null)[]>([]);
-  const mouseRef = useRef({ x: 0, y: 0 });
-  const rafRef = useRef<number>(0);
   const { loaderComplete } = useLoader();
 
   // Split name into individually-addressable characters
@@ -115,50 +113,8 @@ export default function Hero() {
       );
     }, section);
 
-    // ═══════════════════════════════════════════════
-    // MAGNETIC CURSOR: Character-level distortion
-    // ═══════════════════════════════════════════════
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
-    };
-
-    const animateChars = () => {
-      const chars = charsRef.current;
-      const { x: mx, y: my } = mouseRef.current;
-
-      chars.forEach((char) => {
-        if (!char) return;
-        const rect = char.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dx = mx - cx;
-        const dy = my - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const maxDist = 200;
-
-        if (dist < maxDist) {
-          const strength = (1 - dist / maxDist) * 0.35;
-          const moveX = dx * strength * 0.15;
-          const moveY = dy * strength * 0.1;
-          char.style.transform = `translate(${moveX}px, ${moveY}px)`;
-        } else {
-          char.style.transform = "translate(0, 0)";
-        }
-      });
-
-      rafRef.current = requestAnimationFrame(animateChars);
-    };
-
-    const isDesktop = window.matchMedia("(pointer: fine)").matches;
-    if (isDesktop) {
-      window.addEventListener("mousemove", handleMouseMove);
-      rafRef.current = requestAnimationFrame(animateChars);
-    }
-
     return () => {
       ctx.revert();
-      window.removeEventListener("mousemove", handleMouseMove);
-      cancelAnimationFrame(rafRef.current);
     };
   }, [loaderComplete]);
 

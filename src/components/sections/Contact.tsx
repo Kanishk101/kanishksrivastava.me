@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { gsap } from "@/lib/gsap";
 import { useLoader } from "@/contexts/LoaderContext";
 import { SITE_EMAIL, SOCIAL_LINKS } from "@/lib/constants";
@@ -55,6 +55,9 @@ export default function Contact() {
   const submitRef = useRef<HTMLButtonElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
   const { loaderComplete } = useLoader();
+  const [submitState, setSubmitState] = useState<
+    "idle" | "sending" | "sent" | "error"
+  >("idle");
 
   useEffect(() => {
     if (!sectionRef.current || !pinRef.current || !loaderComplete) return;
@@ -234,23 +237,49 @@ export default function Contact() {
     };
   }, [loaderComplete]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const data = new FormData(event.currentTarget);
     const name = String(data.get("name") || "").trim();
     const email = String(data.get("email") || "").trim();
     const message = String(data.get("message") || "").trim();
+    const form = event.currentTarget;
 
-    const subject = encodeURIComponent(
-      `Portfolio inquiry${name ? ` from ${name}` : ""}`
-    );
+    if (!name || !email || !message) {
+      setSubmitState("error");
+      return;
+    }
 
-    const body = encodeURIComponent(
-      [`Name: ${name || "-"}`, `Email: ${email || "-"}`, "", "Message:", message || "-"].join("\n")
-    );
+    setSubmitState("sending");
 
-    window.location.href = `mailto:${SITE_EMAIL}?subject=${subject}&body=${body}`;
+    try {
+      const response = await fetch(`https://formsubmit.co/ajax/${SITE_EMAIL}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          message,
+          _subject: `Portfolio message${name ? ` from ${name}` : ""}`,
+          _captcha: "false",
+          _template: "table",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit form");
+      }
+
+      form.reset();
+      setSubmitState("sent");
+      window.setTimeout(() => setSubmitState("idle"), 2400);
+    } catch {
+      setSubmitState("error");
+    }
   };
 
   return (
@@ -296,6 +325,7 @@ export default function Contact() {
           >
             <div
               ref={introInnerRef}
+              data-ripple-reactive
               className="flex flex-col items-center"
               style={{
                 width: "min(1200px, 100%)",
@@ -306,6 +336,7 @@ export default function Contact() {
             >
               <h2
                 ref={headingRef}
+                data-ripple-text
                 style={{
                   fontFamily: "var(--font-display)",
                   fontWeight: 300,
@@ -331,6 +362,7 @@ export default function Contact() {
 
               <p
                 ref={subcopyRef}
+                data-ripple-text
                 style={{
                   fontFamily: "var(--font-body)",
                   fontWeight: 300,
@@ -348,6 +380,7 @@ export default function Contact() {
               <a
                 ref={emailRef}
                 href={`mailto:${SITE_EMAIL}`}
+                data-ripple-text
                 data-cursor="pointer"
                 style={{
                   fontFamily: "var(--font-sans)",
@@ -409,6 +442,7 @@ export default function Contact() {
                   >
                     <link.icon size={16} />
                     <span
+                      data-ripple-text
                       data-link-label
                       style={{
                         fontFamily: "var(--font-sans)",
@@ -428,6 +462,7 @@ export default function Contact() {
 
           <div
             ref={formWrapRef}
+            data-ripple-reactive
             className="relative mt-20 lg:mt-0 lg:absolute lg:right-0 lg:top-1/2 lg:-translate-y-1/2 w-full lg:w-[42%]"
             style={{
               opacity: 0,
@@ -459,6 +494,7 @@ export default function Contact() {
                   ref={(el) => {
                     fieldRefs.current[index] = el;
                   }}
+                  data-ripple-reactive
                   style={{ opacity: 0 }}
                 >
                   <label
@@ -505,7 +541,7 @@ export default function Contact() {
                 </div>
               ))}
 
-              <div ref={messageRef} style={{ opacity: 0 }}>
+              <div ref={messageRef} data-ripple-reactive style={{ opacity: 0 }}>
                 <label
                   htmlFor="message"
                   style={{
@@ -554,7 +590,9 @@ export default function Contact() {
               <button
                 ref={submitRef}
                 type="submit"
+                data-ripple-text
                 data-cursor="pointer"
+                disabled={submitState === "sending"}
                 style={{
                   alignSelf: "flex-start",
                   background: "transparent",
@@ -567,9 +605,12 @@ export default function Contact() {
                   textTransform: "uppercase",
                   color: "var(--text-light)",
                   opacity: 0,
-                  transition: "opacity 0.25s ease, letter-spacing 0.25s ease",
+                  transition:
+                    "opacity 0.25s ease, letter-spacing 0.25s ease, color 0.25s ease",
+                  cursor: submitState === "sending" ? "default" : "pointer",
                 }}
                 onMouseEnter={(e) => {
+                  if (submitState === "sending") return;
                   e.currentTarget.style.opacity = "0.72";
                   e.currentTarget.style.letterSpacing = "0.28em";
                 }}
@@ -578,7 +619,13 @@ export default function Contact() {
                   e.currentTarget.style.letterSpacing = "0.22em";
                 }}
               >
-                Send inquiry
+                {submitState === "sending"
+                  ? "Sending..."
+                  : submitState === "sent"
+                    ? "Message sent"
+                    : submitState === "error"
+                      ? "Try again"
+                      : "Send message"}
               </button>
             </form>
           </div>

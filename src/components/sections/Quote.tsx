@@ -131,6 +131,7 @@ export default function Quote() {
       >
         <div
           ref={quoteGroupRef}
+          data-ripple-reactive
           style={{
             maxWidth: "1200px",
             width: "100%",
@@ -139,6 +140,7 @@ export default function Quote() {
           }}
         >
           <blockquote
+            data-ripple-reactive
             style={{
               fontFamily: "var(--font-display)",
               fontWeight: 300,
@@ -155,6 +157,7 @@ export default function Quote() {
                 ref={(el) => {
                   wordRefs.current[index] = el;
                 }}
+                data-ripple-text
                 style={{
                   display: "inline-block",
                   opacity: 0.18,
@@ -169,6 +172,7 @@ export default function Quote() {
 
           <p
             ref={attrRef}
+            data-ripple-text
             style={{
               fontFamily: "var(--font-sans)",
               fontWeight: 400,
