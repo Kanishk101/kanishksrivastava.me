@@ -28,7 +28,7 @@ export default function About() {
             trigger: sectionRef.current,
             start: "top top",
             end: "+=170%",
-            scrub: 0.8,
+            scrub: 0.6,
             pin: true,
             anticipatePin: 1,
           },
@@ -70,26 +70,18 @@ export default function About() {
             { opacity: 1, y: 0, scale: 1, rotate: 0, duration: 0.34 },
             0.12
           )
-          .to({}, { duration: 0.34 }, 0.32)
-          .to(textColumnRef.current, { y: -84, duration: 0.18 }, 0.72)
+          .to({}, { duration: 0.38 }, 0.32)
           .to(
-            portraitRef.current,
-            { y: -96, scale: 1.03, duration: 0.2 },
-            0.72
+            [textColumnRef.current, portraitRef.current],
+            { y: -80, duration: 0.24 },
+            0.76
           )
-          .to(quoteRef.current, { y: -92, opacity: 0.62, duration: 0.16 }, 0.78)
           .to(
-            [body1Ref.current, body2Ref.current],
-            {
-              y: -38,
-              opacity: 0.74,
-              stagger: 0.03,
-              duration: 0.16,
-            },
-            0.8
+            [quoteRef.current, body1Ref.current, body2Ref.current, metaRef.current],
+            { opacity: 0.5, duration: 0.2 },
+            0.78
           )
-          .to(metaRef.current, { y: -24, opacity: 0.54, duration: 0.14 }, 0.82)
-          .to(shellRef.current, { y: -10, duration: 0.14 }, 0.84);
+          .to(shellRef.current, { y: -10, duration: 0.14 }, 0.88);
       });
 
       mm.add("(max-width: 1023px)", () => {

@@ -77,6 +77,10 @@ const PROJECTS: Project[] = [
     live: "#",
   },
 ];
+const PROJECT_ORDER = PROJECTS.reduce<Record<string, number>>((acc, project, index) => {
+  acc[project.id] = index;
+  return acc;
+}, {});
 
 const previewTextVariants = {
   enter: (direction: number) => ({
@@ -115,18 +119,14 @@ export default function Work() {
   const { loaderComplete } = useLoader();
 
   const isPlaceholderHref = (href?: string) => !href || href === "#";
-  const projectOrder = PROJECTS.reduce<Record<string, number>>((acc, project, index) => {
-    acc[project.id] = index;
-    return acc;
-  }, {});
 
   const showHoveredProject = (projectId: string) => {
-    const projectIndex = projectOrder[projectId];
+    const projectIndex = PROJECT_ORDER[projectId];
     if (projectIndex >= interactiveCount) return;
     if (hoveredProject === projectId && displayedProject === projectId) return;
 
     if (displayedProject) {
-      setPreviewDirection(projectOrder[projectId] >= projectOrder[displayedProject] ? 1 : -1);
+      setPreviewDirection(PROJECT_ORDER[projectId] >= PROJECT_ORDER[displayedProject] ? 1 : -1);
     }
 
     setHoveredProject(projectId);
@@ -244,13 +244,12 @@ export default function Work() {
     const maxAllowedIndex = Math.max(0, interactiveCount - 1);
     let hoveredFrame = 0;
     let displayedFrame = 0;
-
-    if (hoveredProject && projectOrder[hoveredProject] > maxAllowedIndex) {
+    if (hoveredProject && PROJECT_ORDER[hoveredProject] > maxAllowedIndex) {
       hoveredFrame = window.requestAnimationFrame(() => {
         setHoveredProject(null);
       });
     }
-    if (displayedProject && projectOrder[displayedProject] > maxAllowedIndex) {
+    if (displayedProject && PROJECT_ORDER[displayedProject] > maxAllowedIndex) {
       displayedFrame = window.requestAnimationFrame(() => {
         setDisplayedProject(null);
       });
@@ -260,7 +259,7 @@ export default function Work() {
       if (hoveredFrame) window.cancelAnimationFrame(hoveredFrame);
       if (displayedFrame) window.cancelAnimationFrame(displayedFrame);
     };
-  }, [interactiveCount, hoveredProject, displayedProject, projectOrder]);
+  }, [interactiveCount, hoveredProject, displayedProject]);
 
   // ═══════════════════════════════════════════════
   // BODY SCROLL LOCK when modal is open
@@ -383,7 +382,7 @@ export default function Work() {
           {/* Project List */}
           <div ref={listRef}>
             {PROJECTS.map((project, i) => {
-              const marqueeText = `${project.name} · ${project.type} · ${project.year} · `.repeat(10);
+              const marqueeText = `${project.name} · ${project.type} · ${project.year} · `.repeat(4);
               const isInteractive = i < interactiveCount || interactiveCount >= PROJECTS.length;
               return (
                 <div
@@ -415,7 +414,7 @@ export default function Work() {
                       padding: "18px 24px",
                       position: "relative",
                       transition: "background-color 0.25s ease",
-                      cursor: isInteractive ? "pointer" : "default",
+                      cursor: "none",
                     }}
                     onClick={() => {
                       if (isInteractive) setSelectedProject(project);
@@ -529,7 +528,6 @@ export default function Work() {
                   >
                     <div className="marquee-track">
                       <span
-                        data-ripple-text
                         style={{
                           fontFamily: "var(--font-sans)",
                           fontWeight: 800,
@@ -603,7 +601,6 @@ export default function Work() {
                       color: "rgba(249, 247, 244, 0.76)",
                       letterSpacing: "0.2em",
                       textTransform: "uppercase",
-                      willChange: "transform",
                       textShadow: "0 0 14px rgba(249, 247, 244, 0.08)",
                     }}
                   >
@@ -885,106 +882,74 @@ export default function Work() {
                   >
                     Links
                   </span>
-                  {!isPlaceholderHref(selectedProject.live) ? (
-                    <a
-                      href={selectedProject.live}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-ripple-text
-                      style={{
-                        fontFamily: "var(--font-sans)",
-                        fontSize: "16px",
-                        fontWeight: 400,
-                        color: "var(--text-light)",
-                        letterSpacing: "0.05em",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        backgroundImage: "none",
-                        transition: "opacity 0.2s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.opacity = "0.7";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.opacity = "1";
-                      }}
-                    >
-                      View Live
-                      <span style={{ fontSize: "14px" }}>↗</span>
-                    </a>
-                  ) : (
-                    <span
-                      data-ripple-text
-                      aria-disabled="true"
-                      title="Replace the placeholder URL to enable this link."
-                      style={{
-                        fontFamily: "var(--font-sans)",
-                        fontSize: "16px",
-                        fontWeight: 400,
-                        color: "var(--text-light)",
-                        letterSpacing: "0.05em",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        opacity: 0.45,
-                        cursor: "not-allowed",
-                      }}
-                    >
-                      View Live
-                      <span style={{ fontSize: "14px" }}>↗</span>
-                    </span>
-                  )}
-                  {!isPlaceholderHref(selectedProject.github) ? (
-                    <a
-                      href={selectedProject.github}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-ripple-text
-                      style={{
-                        fontFamily: "var(--font-sans)",
-                        fontSize: "16px",
-                        fontWeight: 400,
-                        color: "var(--text-light)",
-                        letterSpacing: "0.05em",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        backgroundImage: "none",
-                        transition: "opacity 0.2s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.opacity = "0.7";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.opacity = "1";
-                      }}
-                    >
-                      GitHub
-                      <span style={{ fontSize: "14px" }}>↗</span>
-                    </a>
-                  ) : (
-                    <span
-                      data-ripple-text
-                      aria-disabled="true"
-                      title="Replace the placeholder URL to enable this link."
-                      style={{
-                        fontFamily: "var(--font-sans)",
-                        fontSize: "16px",
-                        fontWeight: 400,
-                        color: "var(--text-light)",
-                        letterSpacing: "0.05em",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        opacity: 0.45,
-                        cursor: "not-allowed",
-                      }}
-                    >
-                      GitHub
-                      <span style={{ fontSize: "14px" }}>↗</span>
-                    </span>
-                  )}
+                  <a
+                    href={selectedProject.live || "#"}
+                    target={isPlaceholderHref(selectedProject.live) ? undefined : "_blank"}
+                    rel={isPlaceholderHref(selectedProject.live) ? undefined : "noopener noreferrer"}
+                    onClick={isPlaceholderHref(selectedProject.live) ? (e: React.MouseEvent) => e.preventDefault() : undefined}
+                    data-ripple-text
+                    data-cursor="pointer"
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "16px",
+                      fontWeight: 400,
+                      color: "var(--text-light)",
+                      letterSpacing: "0.05em",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      backgroundImage: "none",
+                      padding: "10px 0",
+                      borderBottom: "1px solid rgba(249, 247, 244, 0.2)",
+                      transition: "opacity 0.2s ease, border-color 0.2s ease",
+                      cursor: "none",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = "0.7";
+                      e.currentTarget.style.borderBottomColor = "rgba(249, 247, 244, 0.6)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = "1";
+                      e.currentTarget.style.borderBottomColor = "rgba(249, 247, 244, 0.2)";
+                    }}
+                  >
+                    View Live
+                    <span style={{ fontSize: "14px" }}>↗</span>
+                  </a>
+                  <a
+                    href={selectedProject.github || "#"}
+                    target={isPlaceholderHref(selectedProject.github) ? undefined : "_blank"}
+                    rel={isPlaceholderHref(selectedProject.github) ? undefined : "noopener noreferrer"}
+                    onClick={isPlaceholderHref(selectedProject.github) ? (e: React.MouseEvent) => e.preventDefault() : undefined}
+                    data-ripple-text
+                    data-cursor="pointer"
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "16px",
+                      fontWeight: 400,
+                      color: "var(--text-light)",
+                      letterSpacing: "0.05em",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      backgroundImage: "none",
+                      padding: "10px 0",
+                      borderBottom: "1px solid rgba(249, 247, 244, 0.2)",
+                      transition: "opacity 0.2s ease, border-color 0.2s ease",
+                      cursor: "none",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = "0.7";
+                      e.currentTarget.style.borderBottomColor = "rgba(249, 247, 244, 0.6)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = "1";
+                      e.currentTarget.style.borderBottomColor = "rgba(249, 247, 244, 0.2)";
+                    }}
+                  >
+                    GitHub
+                    <span style={{ fontSize: "14px" }}>↗</span>
+                  </a>
                 </div>
               </motion.div>
             </div>

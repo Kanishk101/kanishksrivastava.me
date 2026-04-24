@@ -102,7 +102,7 @@ export default function Hero() {
         roleRef.current,
         { opacity: 0, y: 20 },
         { opacity: 1, y: 0, duration: 0.08, ease: "power2.out" },
-        0.3
+        0.12
       );
 
       // Scroll indicator fades out early

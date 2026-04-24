@@ -223,6 +223,18 @@ a:hover {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   CUSTOM CURSOR — hide native cursor on pointer devices
+   ═══════════════════════════════════════════════════════════ */
+
+@media (pointer: fine) {
+  *,
+  *::before,
+  *::after {
+    cursor: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
    RESPONSIVE CURSOR — disable on touch devices
    ═══════════════════════════════════════════════════════════ */
 

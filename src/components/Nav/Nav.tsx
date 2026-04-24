@@ -14,8 +14,8 @@ const NAV_LINKS = [
 ];
 
 const SECTION_PROGRESS_TARGETS: Record<string, number> = {
-  about: 0.3,
-  stack: 0.12,
+  about: 0.30,
+  stack: 0.05,
 };
 
 export default function Nav() {
@@ -90,6 +90,46 @@ export default function Nav() {
     };
   }, [loaderComplete]);
 
+  // Focus trap + Escape for mobile menu
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+
+    const handleTabTrap = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const menuEl = document.getElementById(mobileMenuId);
+      if (!menuEl) return;
+
+      const focusable = menuEl.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled])'
+      );
+      const focusableEls = Array.from(focusable);
+      if (focusableEls.length === 0) return;
+
+      const first = focusableEls[0];
+      const last = focusableEls[focusableEls.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    window.addEventListener("keydown", handleTabTrap);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("keydown", handleTabTrap);
+    };
+  }, [mobileOpen, mobileMenuId]);
+
   const handleNavClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
     href: string
@@ -98,7 +138,7 @@ export default function Nav() {
     const lenis = getLenis();
     if (href === "#hero") {
       if (lenis) {
-        lenis.scrollTo(0, { duration: 1.2 });
+        lenis.scrollTo(0, { duration: 1.8, easing: (t: number) => 1 - Math.pow(1 - t, 4) });
       } else {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
@@ -135,7 +175,7 @@ export default function Nav() {
       const destination = Math.max(0, Math.min(finalY, maxY));
 
       if (lenis) {
-        lenis.scrollTo(destination, { duration: 1.2 });
+        lenis.scrollTo(destination, { duration: 1.8, easing: (t: number) => 1 - Math.pow(1 - t, 4) });
       } else {
         window.scrollTo({ top: destination, behavior: "smooth" });
       }

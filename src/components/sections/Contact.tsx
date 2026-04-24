@@ -38,7 +38,7 @@ const CONTACT_LINKS = [
 
 const HEADING_WORDS = ["Let’s", "build", "something", "remarkable."];
 
-const COPYRIGHT_YEAR = "2026";
+const COPYRIGHT_YEAR = new Date().getFullYear().toString();
 
 export default function Contact() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -58,6 +58,8 @@ export default function Contact() {
   const [submitState, setSubmitState] = useState<
     "idle" | "sending" | "sent" | "error"
   >("idle");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const lastSubmitRef = useRef(0);
 
   useEffect(() => {
     if (!sectionRef.current || !pinRef.current || !loaderComplete) return;
@@ -79,7 +81,7 @@ export default function Contact() {
             trigger: sectionRef.current,
             start: "top top",
             end: "+=210%",
-            scrub: 0.85,
+            scrub: 1.2,
             pin: pinRef.current,
             anticipatePin: 1,
           },
@@ -110,8 +112,8 @@ export default function Contact() {
           .to({}, { duration: 0.22 }, 0.28)
           .fromTo(
             formWrapRef.current,
-            { opacity: 0, x: 90, y: 28 },
-            { opacity: 1, x: 0, y: 0, duration: 0.26 },
+            { opacity: 0, x: 90, y: 28, yPercent: -50 },
+            { opacity: 1, x: 0, y: 0, yPercent: -50, duration: 0.26 },
             0.68
           )
           .fromTo(
@@ -141,26 +143,29 @@ export default function Contact() {
             {
               x: "-24vw",
               y: -12,
-              duration: 0.48,
+              duration: 0.56,
+              ease: "power2.inOut",
             },
-            0.68
+            0.62
           )
           .to(
             introInnerRef.current,
             {
               scale: 0.98,
               width: introEndWidth,
-              duration: 0.52,
+              duration: 0.6,
+              ease: "power2.inOut",
             },
-            0.64
+            0.58
           )
           .to(
             headingRef.current,
             {
               letterSpacing: "-0.01em",
-              duration: 0.48,
+              duration: 0.56,
+              ease: "power2.inOut",
             },
-            0.66
+            0.60
           )
           .to(
             footerRef.current,
@@ -244,13 +249,36 @@ export default function Contact() {
     const name = String(data.get("name") || "").trim();
     const email = String(data.get("email") || "").trim();
     const message = String(data.get("message") || "").trim();
+    const honeypot = String(data.get("_honey") || "").trim();
     const form = event.currentTarget;
 
-    if (!name || !email || !message) {
+    // Honeypot check — bots fill this hidden field
+    if (honeypot) return;
+
+    // Per-field validation
+    const errors: Record<string, string> = {};
+    if (!name) errors.name = "Name is required";
+    if (!email) {
+      errors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = "Please enter a valid email";
+    }
+    if (!message) errors.message = "Message is required";
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       setSubmitState("error");
       return;
     }
 
+    // Rate limiting — 30s cooldown between submissions
+    const now = Date.now();
+    if (now - lastSubmitRef.current < 30000) {
+      setSubmitState("error");
+      return;
+    }
+
+    setFieldErrors({});
     setSubmitState("sending");
 
     try {
@@ -265,8 +293,9 @@ export default function Contact() {
           email,
           message,
           _subject: `Portfolio message${name ? ` from ${name}` : ""}`,
-          _captcha: "false",
+          _captcha: "true",
           _template: "table",
+          _honey: "",
         }),
       });
 
@@ -275,6 +304,7 @@ export default function Contact() {
       }
 
       form.reset();
+      lastSubmitRef.current = now;
       setSubmitState("sent");
       window.setTimeout(() => setSubmitState("idle"), 2400);
     } catch {
@@ -462,11 +492,9 @@ export default function Contact() {
 
           <div
             ref={formWrapRef}
-            data-ripple-reactive
             className="relative mt-20 lg:mt-0 lg:absolute lg:right-0 lg:top-1/2 lg:-translate-y-1/2 w-full lg:w-[42%]"
             style={{
               opacity: 0,
-              willChange: "transform",
               minHeight: "420px",
             }}
           >
@@ -475,6 +503,15 @@ export default function Contact() {
               className="flex flex-col h-full"
               style={{ gap: "26px", justifyContent: "space-between" }}
             >
+              {/* Honeypot — hidden from users, catches bots */}
+              <input
+                type="text"
+                name="_honey"
+                tabIndex={-1}
+                autoComplete="off"
+                style={{ display: "none" }}
+                aria-hidden="true"
+              />
               {[
                 {
                   label: "Name",
@@ -494,7 +531,6 @@ export default function Contact() {
                   ref={(el) => {
                     fieldRefs.current[index] = el;
                   }}
-                  data-ripple-reactive
                   style={{ opacity: 0 }}
                 >
                   <label
@@ -528,6 +564,7 @@ export default function Contact() {
                       color: "var(--text-light)",
                       outline: "none",
                       transition: "border-color 0.25s ease",
+                      cursor: "none",
                     }}
                     onFocus={(e) => {
                       e.currentTarget.style.borderBottomColor =
@@ -538,10 +575,25 @@ export default function Contact() {
                         "rgba(196, 185, 174, 0.34)";
                     }}
                   />
+                  {fieldErrors[field.name] && (
+                    <span
+                      role="alert"
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "10px",
+                        color: "#e57373",
+                        marginTop: "6px",
+                        display: "block",
+                        letterSpacing: "0.1em",
+                      }}
+                    >
+                      {fieldErrors[field.name]}
+                    </span>
+                  )}
                 </div>
               ))}
 
-              <div ref={messageRef} data-ripple-reactive style={{ opacity: 0 }}>
+              <div ref={messageRef} style={{ opacity: 0 }}>
                 <label
                   htmlFor="message"
                   style={{
@@ -575,6 +627,7 @@ export default function Contact() {
                     resize: "vertical",
                     minHeight: "140px",
                     transition: "border-color 0.25s ease",
+                    cursor: "none",
                   }}
                   onFocus={(e) => {
                     e.currentTarget.style.borderBottomColor =
@@ -585,6 +638,21 @@ export default function Contact() {
                       "rgba(196, 185, 174, 0.34)";
                   }}
                 />
+                {fieldErrors.message && (
+                  <span
+                    role="alert"
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "10px",
+                      color: "#e57373",
+                      marginTop: "6px",
+                      display: "block",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    {fieldErrors.message}
+                  </span>
+                )}
               </div>
 
               <button
@@ -607,7 +675,7 @@ export default function Contact() {
                   opacity: 0,
                   transition:
                     "opacity 0.25s ease, letter-spacing 0.25s ease, color 0.25s ease",
-                  cursor: submitState === "sending" ? "default" : "pointer",
+                  cursor: "none",
                 }}
                 onMouseEnter={(e) => {
                   if (submitState === "sending") return;
@@ -628,6 +696,26 @@ export default function Contact() {
                       : "Send message"}
               </button>
             </form>
+            {/* Screen reader announcement for form state — outside form to avoid flex layout interference */}
+            <div
+              aria-live="polite"
+              aria-atomic="true"
+              style={{
+                position: "absolute",
+                width: "1px",
+                height: "1px",
+                padding: 0,
+                margin: "-1px",
+                overflow: "hidden",
+                clip: "rect(0, 0, 0, 0)",
+                whiteSpace: "nowrap",
+                borderWidth: 0,
+              }}
+            >
+              {submitState === "sending" && "Sending your message..."}
+              {submitState === "sent" && "Message sent successfully."}
+              {submitState === "error" && "There was an error. Please try again."}
+            </div>
           </div>
         </div>
 

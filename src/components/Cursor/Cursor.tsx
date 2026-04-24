@@ -80,6 +80,9 @@ export default function Cursor() {
   const activeSurfacesRef = useRef<HTMLElement[]>([]);
   const hoverOffsetsRef = useRef(new WeakMap<HTMLElement, Offset>());
   const clickOffsetsRef = useRef(new WeakMap<HTMLElement, Offset>());
+  const frameCountRef = useRef(0);
+  const collectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastCalcMouseRef = useRef({ x: -999, y: -999 });
   const { cursorState, setCursorState } = useCursor();
   const [mounted] = useState(
     () =>
@@ -90,11 +93,9 @@ export default function Cursor() {
   const applyOffset = useCallback((el: HTMLElement) => {
     const hover = hoverOffsetsRef.current.get(el) || { x: 0, y: 0 };
     const click = clickOffsetsRef.current.get(el) || { x: 0, y: 0 };
-    gsap.set(el, {
-      x: hover.x + click.x,
-      y: hover.y + click.y,
-      force3D: true,
-    });
+    const tx = hover.x + click.x;
+    const ty = hover.y + click.y;
+    el.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
   }, []);
 
   const clearHoverOffsets = useCallback(
@@ -132,7 +133,6 @@ export default function Cursor() {
         span.className = "cursor-distort-char";
         span.setAttribute("aria-hidden", "true");
         span.style.display = "inline-block";
-        span.style.willChange = "transform";
         span.style.transition =
           "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)";
         span.textContent = char;
@@ -189,7 +189,6 @@ export default function Cursor() {
 
   useEffect(() => {
     if (!mounted) return;
-    let collectScheduled = false;
 
     const collectTargets = () => {
       Array.from(
@@ -205,7 +204,6 @@ export default function Cursor() {
       ).filter((el) => !el.closest("#cursor"));
 
       textTargets.forEach((el) => {
-        el.style.willChange = "transform";
         el.style.transition = "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)";
       });
 
@@ -236,12 +234,11 @@ export default function Cursor() {
     window.addEventListener("resize", collectTargets);
 
     const observer = new MutationObserver(() => {
-      if (collectScheduled) return;
-      collectScheduled = true;
-      requestAnimationFrame(() => {
+      if (collectTimeoutRef.current) clearTimeout(collectTimeoutRef.current);
+      collectTimeoutRef.current = setTimeout(() => {
         collectTargets();
-        collectScheduled = false;
-      });
+        collectTimeoutRef.current = null;
+      }, 300);
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
@@ -249,6 +246,7 @@ export default function Cursor() {
     return () => {
       window.removeEventListener("resize", collectTargets);
       observer.disconnect();
+      if (collectTimeoutRef.current) clearTimeout(collectTimeoutRef.current);
     };
   }, [mounted, splitElementText]);
 
@@ -269,19 +267,27 @@ export default function Cursor() {
         cursorRef.current.style.top = `${posRef.current.y}px`;
       }
 
-      const hovered = document.elementFromPoint(
-        mouseRef.current.x,
-        mouseRef.current.y
-      ) as HTMLElement | null;
-      const nextScope =
-        hovered?.closest<HTMLElement>(SCOPE_SELECTOR) ?? document.body;
+      // Throttle ALL expensive work to every 3rd frame
+      // The CSS transition (0.3s) on elements smooths out the visual result
+      frameCountRef.current++;
+      if (frameCountRef.current % 3 !== 0) return;
 
-      if (activeScopeRef.current !== nextScope) {
-        clearHoverOffsets(activeTextRef.current);
-        activeScopeRef.current = nextScope;
-        activeTextRef.current = scopedTextTargetsRef.current.get(nextScope) ?? [];
-        activeSurfacesRef.current =
-          scopedSurfaceTargetsRef.current.get(nextScope) ?? [];
+      // Scope detection every 6th calc (= every 18th frame)
+      if (frameCountRef.current % 18 === 0) {
+        const hovered = document.elementFromPoint(
+          mouseRef.current.x,
+          mouseRef.current.y
+        ) as HTMLElement | null;
+        const nextScope =
+          hovered?.closest<HTMLElement>(SCOPE_SELECTOR) ?? document.body;
+
+        if (activeScopeRef.current !== nextScope) {
+          clearHoverOffsets(activeTextRef.current);
+          activeScopeRef.current = nextScope;
+          activeTextRef.current = scopedTextTargetsRef.current.get(nextScope) ?? [];
+          activeSurfacesRef.current =
+            scopedSurfaceTargetsRef.current.get(nextScope) ?? [];
+        }
       }
 
       if (performance.now() < rippleLockUntilRef.current) {
@@ -289,39 +295,58 @@ export default function Cursor() {
         return;
       }
 
+      const mx = mouseRef.current.x;
+      const my = mouseRef.current.y;
+
+      // Skip entirely if mouse hasn't moved significantly since last calc
+      const dmx = mx - lastCalcMouseRef.current.x;
+      const dmy = my - lastCalcMouseRef.current.y;
+      if (dmx * dmx + dmy * dmy < 4) return; // < 2px movement
+      lastCalcMouseRef.current.x = mx;
+      lastCalcMouseRef.current.y = my;
       const maxDist = 200;
-      activeTextRef.current.forEach((el) => {
+      const targets = activeTextRef.current;
+      const len = targets.length;
+
+      // Process in a single loop — reads then writes per element
+      // This is faster than building an array for small-to-medium target counts
+      for (let i = 0; i < len; i++) {
+        const el = targets[i];
         const rect = el.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) return;
+        if (rect.width === 0 || rect.height === 0) continue;
+
+        // Skip off-screen elements entirely
         if (
           rect.bottom < -40 ||
           rect.top > window.innerHeight + 40 ||
           rect.right < -40 ||
           rect.left > window.innerWidth + 40
         ) {
-          hoverOffsetsRef.current.set(el, { x: 0, y: 0 });
-          applyOffset(el);
-          return;
+          const prev = hoverOffsetsRef.current.get(el);
+          if (prev && (prev.x !== 0 || prev.y !== 0)) {
+            hoverOffsetsRef.current.set(el, { x: 0, y: 0 });
+            applyOffset(el);
+          }
+          continue;
         }
 
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
-        const dx = mouseRef.current.x - cx;
-        const dy = mouseRef.current.y - cy;
-        const dist = Math.hypot(dx, dy);
+        const dx = mx - cx;
+        const dy = my - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
 
+        let ox = 0;
+        let oy = 0;
         if (dist < maxDist) {
           const strength = (1 - dist / maxDist) * 0.35;
-          hoverOffsetsRef.current.set(el, {
-            x: dx * strength * 0.15,
-            y: dy * strength * 0.1,
-          });
-        } else {
-          hoverOffsetsRef.current.set(el, { x: 0, y: 0 });
+          ox = dx * strength * 0.15;
+          oy = dy * strength * 0.1;
         }
 
+        hoverOffsetsRef.current.set(el, { x: ox, y: oy });
         applyOffset(el);
-      });
+      }
     };
 
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
@@ -684,7 +709,8 @@ export default function Cursor() {
 
       <style jsx global>{`
         @media (pointer: fine) {
-          * {
+          html,
+          body {
             cursor: none !important;
           }
         }
